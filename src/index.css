@@ -1964,3 +1964,238 @@ ul, ol { list-style: none; }
   .hero-synopsis { display: none; }
   .container { padding: 0 var(--space-md); }
 }
+
+/* === Social Login Modal === */
+.social-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: var(--space-md);
+}
+
+.social-modal-card {
+  position: relative;
+  width: 100%;
+  max-width: 440px;
+  background: rgba(20, 20, 20, 0.85);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  padding: var(--space-2xl);
+  box-shadow: var(--shadow-xl);
+  color: var(--text-primary);
+  backdrop-filter: blur(20px);
+}
+
+.social-modal-close {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: none;
+  border: none;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  font-size: 1.2rem;
+  transition: color var(--transition-fast);
+  padding: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.social-modal-close:hover {
+  color: var(--text-primary);
+}
+
+.social-modal-header {
+  text-align: center;
+  margin-bottom: var(--space-xl);
+}
+
+.social-modal-icon-wrapper {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  margin-bottom: var(--space-md);
+}
+
+.social-modal-title {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: var(--space-xs);
+}
+
+.social-modal-subtitle {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.social-accounts-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-xl);
+}
+
+.social-account-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  color: var(--text-primary);
+  text-align: left;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  width: 100%;
+}
+
+.social-account-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: var(--border-hover);
+  transform: translateY(-1px);
+}
+
+.social-account-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.social-account-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+.social-account-avatar.admin {
+  background: var(--gradient-accent);
+  color: #ffffff;
+}
+
+.social-account-avatar.guest {
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+}
+
+.social-account-details {
+  display: flex;
+  flex-direction: column;
+}
+
+.social-account-name {
+  font-weight: 600;
+  font-size: 0.95rem;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.social-account-badge {
+  font-size: 0.65rem;
+  background: var(--accent);
+  color: white;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.social-account-email {
+  color: var(--text-tertiary);
+  font-size: 0.8rem;
+}
+
+.social-modal-divider {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  margin-bottom: var(--space-lg);
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.social-modal-divider::before, .social-modal-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+.social-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.social-input-wrapper {
+  position: relative;
+}
+
+.social-input-icon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-tertiary);
+  font-size: 0.9rem;
+  pointer-events: none;
+}
+
+.social-input {
+  width: 100%;
+  padding: 12px 16px 12px 38px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  outline: none;
+  transition: all var(--transition-fast);
+}
+
+.social-input:focus {
+  border-color: var(--accent);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.social-submit-btn {
+  width: 100%;
+  padding: 14px;
+  font-weight: 600;
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  margin-top: var(--space-xs);
+  font-size: 0.95rem;
+}
+
+.social-submit-btn:hover {
+  transform: translateY(-1px);
+}
+

@@ -3,15 +3,37 @@ import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { FaGoogle, FaApple } from 'react-icons/fa';
 import { useAuth } from '../context/AuthContext';
+import SocialLoginModal from '../components/SocialLoginModal';
 
 export default function LoginPage() {
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { login, loginWithSocial } = useAuth();
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [socialOpen, setSocialOpen] = useState(false);
+  const [socialProvider, setSocialProvider] = useState('');
+
+  const handleSocialClick = (provider) => {
+    setSocialProvider(provider);
+    setSocialOpen(true);
+  };
+
+  const handleSocialLogin = async (name, email) => {
+    try {
+      setLoading(true);
+      setError('');
+      await loginWithSocial(name, email);
+      setSocialOpen(false);
+      navigate('/');
+    } catch (err) {
+      setError(err.message || 'Social sign-in failed');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -100,14 +122,21 @@ export default function LoginPage() {
         <div className="auth-divider">or continue with</div>
 
         <div className="social-login">
-          <button className="social-btn"><FaGoogle /> Google</button>
-          <button className="social-btn"><FaApple /> Apple</button>
+          <button type="button" className="social-btn" onClick={() => handleSocialClick('Google')}><FaGoogle /> Google</button>
+          <button type="button" className="social-btn" onClick={() => handleSocialClick('Apple')}><FaApple /> Apple</button>
         </div>
 
         <p style={{ textAlign: 'center', marginTop: 'var(--space-lg)', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
           Don't have an account? <Link to="/signup" style={{ color: 'var(--accent)', fontWeight: 600 }}>Sign Up</Link>
         </p>
       </motion.div>
+
+      <SocialLoginModal 
+        isOpen={socialOpen} 
+        onClose={() => setSocialOpen(false)} 
+        onLogin={handleSocialLogin} 
+        provider={socialProvider} 
+      />
     </div>
   );
 }

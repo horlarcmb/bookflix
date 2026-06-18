@@ -195,6 +195,39 @@ export function AuthProvider({ children }) {
     }
   };
 
+  const loginWithSocial = async (name, email) => {
+    const users = JSON.parse(localStorage.getItem('bookflix_users') || '[]');
+    let userAccount = users.find(u => u.email.toLowerCase() === email.toLowerCase());
+
+    if (!userAccount) {
+      // Create new social account
+      const lowerEmail = email.toLowerCase();
+      const isAdmin = lowerEmail === 'admin@bookflix.com' || lowerEmail.includes('horlarcmb');
+      
+      userAccount = {
+        id: Date.now().toString(),
+        name,
+        email: lowerEmail,
+        passwordHash: 'social-auth-account',
+        favoriteGenres: [],
+        readingList: [],
+        readHistory: {},
+        ratings: {},
+        joinedDate: new Date().toISOString().split('T')[0],
+        theme: 'dark',
+        isAdmin
+      };
+      
+      users.push(userAccount);
+      localStorage.setItem('bookflix_users', JSON.stringify(users));
+    }
+
+    const { passwordHash: _, ...userSession } = userAccount;
+    localStorage.setItem('bookflix_currentUser', JSON.stringify(userSession));
+    setUser(userSession);
+    return userSession;
+  };
+
   const value = {
     user,
     loading,
@@ -206,7 +239,8 @@ export function AuthProvider({ children }) {
     updateBookProgress,
     setBookRating,
     getAllUsers,
-    toggleUserAdminStatus
+    toggleUserAdminStatus,
+    loginWithSocial
   };
 
   return (
@@ -223,3 +257,4 @@ export function useAuth() {
   }
   return context;
 }
+
