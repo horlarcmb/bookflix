@@ -5,11 +5,13 @@ import {
   FiTrendingUp, FiCreditCard, FiUpload, FiEdit, FiTrash2, FiX, FiCheck 
 } from 'react-icons/fi';
 import { useBook } from '../context/BookContext';
+import { useAuth } from '../context/AuthContext';
 import { GENRES, CONTENT_TYPES } from '../data/books';
 
 export default function AdminDashboard() {
   const [activeSection, setActiveSection] = useState('overview');
   const { catalog, uploadBook, deleteBook } = useBook();
+  const { user: currentUser, getAllUsers, toggleUserAdminStatus } = useAuth();
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
 
@@ -395,35 +397,102 @@ export default function AdminDashboard() {
               </div>
             )}
 
-            {/* User List and Revenue Section fallback placeholders */}
-            {(activeSection === 'users' || activeSection === 'revenue') && (
+            {/* User List Management Section */}
+            {activeSection === 'users' && (
               <div className="admin-table-wrapper" style={{ marginTop: 'var(--space-lg)' }}>
                 <div style={{ padding: 'var(--space-md)', borderBottom: '1px solid var(--border)' }}>
-                  <h3 style={{ fontSize: '1rem' }}>
-                    {activeSection === 'users' ? 'Registered Users' : 'Revenue Analytics'}
-                  </h3>
+                  <h3 style={{ fontSize: '1rem' }}>Registered Users</h3>
                 </div>
                 <table className="admin-table">
                   <thead>
                     <tr>
-                      <th>User</th><th>Email</th><th>Plan</th><th>Books Read</th><th>Joined</th>
+                      <th>User</th><th>Email</th><th>Role</th><th>Premium status</th><th>Joined</th><th>Actions</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {['Alex Johnson', 'Maria Garcia', 'James Lee', 'Sophie Martin', 'Ryu Tanaka', 'Emma Wilson'].map((name, i) => (
-                      <tr key={i}>
+                    {getAllUsers().map((u, i) => (
+                      <tr key={u.id}>
                         <td style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                          <div style={{ width: 32, height: 32, borderRadius: '50%', background: `hsl(${i * 60}, 70%, 50%)`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 700 }}>
-                            {name[0]}
+                          <div style={{ width: 32, height: 32, borderRadius: '50%', background: `hsl(${(i * 70) % 360}, 75%, 45%)`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 700, color: '#fff' }}>
+                            {u.name ? u.name[0].toUpperCase() : 'U'}
                           </div>
-                          {name}
+                          <span style={{ fontWeight: 500 }}>{u.name} {u.id === currentUser?.id && <span style={{ color: 'var(--text-tertiary)', fontSize: '0.8rem' }}>(You)</span>}</span>
                         </td>
-                        <td style={{ color: 'var(--text-tertiary)' }}>{name.toLowerCase().replace(' ', '.')}@email.com</td>
-                        <td><span className={`badge ${i % 3 === 0 ? 'badge-premium' : 'badge-type'}`}>{i % 3 === 0 ? 'Premium' : 'Standard'}</span></td>
-                        <td>{Math.floor(Math.random() * 200)}</td>
-                        <td style={{ color: 'var(--text-tertiary)' }}>2026-0{i + 1}-{10 + i}</td>
+                        <td style={{ color: 'var(--text-tertiary)' }}>{u.email}</td>
+                        <td>
+                          <span className={`badge ${u.isAdmin ? 'badge-new' : 'badge-type'}`} style={{ background: u.isAdmin ? 'linear-gradient(135deg, #e50914 0%, #ff4e50 100%)' : 'rgba(255,255,255,0.06)' }}>
+                            {u.isAdmin ? 'Admin' : 'User'}
+                          </span>
+                        </td>
+                        <td>
+                          <span className={`badge ${u.premium ? 'badge-premium' : 'badge-type'}`}>
+                            {u.premium ? 'Premium' : 'Standard'}
+                          </span>
+                        </td>
+                        <td style={{ color: 'var(--text-tertiary)' }}>{u.joinedDate || 'N/A'}</td>
+                        <td>
+                          {u.id === currentUser?.id ? (
+                            <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Self-protection</span>
+                          ) : (
+                            <button
+                              className="btn btn-ghost btn-sm"
+                              style={{ 
+                                color: u.isAdmin ? 'var(--error)' : 'var(--success)', 
+                                padding: '4px 8px',
+                                border: '1px solid currentColor',
+                                borderRadius: '4px',
+                                fontSize: '0.8rem',
+                                display: 'inline-flex',
+                                alignItems: 'center'
+                              }}
+                              onClick={() => {
+                                if (window.confirm(`Are you sure you want to ${u.isAdmin ? 'revoke admin permissions from' : 'grant admin permissions to'} ${u.name}?`)) {
+                                  toggleUserAdminStatus(u.id);
+                                }
+                              }}
+                            >
+                              {u.isAdmin ? 'Revoke Admin' : 'Make Admin'}
+                            </button>
+                          )}
+                        </td>
                       </tr>
                     ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {/* Revenue Analytics Section */}
+            {activeSection === 'revenue' && (
+              <div className="admin-table-wrapper" style={{ marginTop: 'var(--space-lg)' }}>
+                <div style={{ padding: 'var(--space-md)', borderBottom: '1px solid var(--border)' }}>
+                  <h3 style={{ fontSize: '1rem' }}>Revenue Analytics</h3>
+                </div>
+                <table className="admin-table">
+                  <thead>
+                    <tr>
+                      <th>Plan</th><th>Active Subscriptions</th><th>Monthly Revenue</th><th>Growth</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td>Premium Plan (Monthly)</td>
+                      <td>42,391</td>
+                      <td>$254,346</td>
+                      <td style={{ color: 'var(--success)' }}>+12.4%</td>
+                    </tr>
+                    <tr>
+                      <td>Premium Plan (Annual)</td>
+                      <td>46,950</td>
+                      <td>$1,126,800</td>
+                      <td style={{ color: 'var(--success)' }}>+8.9%</td>
+                    </tr>
+                    <tr>
+                      <td>Ad-Supported (Standard)</td>
+                      <td>35,551</td>
+                      <td>$35,551</td>
+                      <td style={{ color: 'var(--warning)' }}>-1.2%</td>
+                    </tr>
                   </tbody>
                 </table>
               </div>

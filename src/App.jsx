@@ -37,6 +37,16 @@ function ProtectedRoute({ children }) {
   return children;
 }
 
+// Admin Route Component to restrict access to Admins only
+function AdminRoute({ children }) {
+  const { user } = useAuth();
+  if (!user || !user.isAdmin) {
+    return <Navigate to="/" replace />;
+  }
+  return children;
+}
+
+
 function AppLayout() {
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const location = useLocation();
@@ -95,9 +105,9 @@ function AppLayout() {
             </ProtectedRoute>
           } />
           <Route path="/admin" element={
-            <ProtectedRoute>
+            <AdminRoute>
               <AdminDashboard />
-            </ProtectedRoute>
+            </AdminRoute>
           } />
 
           {/* Catch-all Redirect */}

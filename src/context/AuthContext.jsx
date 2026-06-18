@@ -25,7 +25,29 @@ export function AuthProvider({ children }) {
         localStorage.removeItem('bookflix_currentUser');
       }
     }
-    setLoading(false);
+    
+    // Seed default admin account if users list is empty
+    async function seedAdmin() {
+      const users = JSON.parse(localStorage.getItem('bookflix_users') || '[]');
+      if (users.length === 0) {
+        const adminHash = await hashPassword('AdminPassword123!');
+        const defaultAdmin = {
+          id: 'admin-1',
+          name: 'System Admin',
+          email: 'admin@bookflix.com',
+          passwordHash: adminHash,
+          favoriteGenres: [],
+          readingList: [],
+          readHistory: {},
+          ratings: {},
+          joinedDate: new Date().toISOString().split('T')[0],
+          theme: 'dark',
+          isAdmin: true
+        };
+        localStorage.setItem('bookflix_users', JSON.stringify([defaultAdmin]));
+      }
+    }
+    seedAdmin().then(() => setLoading(false));
   }, []);
 
   const signup = async (name, email, password, favoriteGenres = []) => {
@@ -38,17 +60,22 @@ export function AuthProvider({ children }) {
 
     const passwordHash = await hashPassword(password);
     
+    // Auto-promote admin@bookflix.com or emails containing "horlarcmb"
+    const lowerEmail = email.toLowerCase();
+    const isAdmin = lowerEmail === 'admin@bookflix.com' || lowerEmail.includes('horlarcmb');
+
     const newUser = {
       id: Date.now().toString(),
       name,
-      email: email.toLowerCase(),
+      email: lowerEmail,
       passwordHash,
       favoriteGenres,
       readingList: [],
       readHistory: {},
       ratings: {},
       joinedDate: new Date().toISOString().split('T')[0],
-      theme: 'dark'
+      theme: 'dark',
+      isAdmin
     };
 
     users.push(newUser);
@@ -143,6 +170,31 @@ export function AuthProvider({ children }) {
     updateProfile({ ratings: updatedRatings });
   };
 
+  const getAllUsers = () => {
+    return JSON.parse(localStorage.getItem('bookflix_users') || '[]');
+  };
+
+  const toggleUserAdminStatus = (targetUserId) => {
+    if (!user || !user.isAdmin) return; // Only admins can promote/demote
+
+    const users = JSON.parse(localStorage.getItem('bookflix_users') || '[]');
+    const userIndex = users.findIndex(u => u.id === targetUserId);
+
+    if (userIndex === -1) return;
+
+    // Toggle isAdmin flag
+    const updatedUser = { ...users[userIndex], isAdmin: !users[userIndex].isAdmin };
+    users[userIndex] = updatedUser;
+    localStorage.setItem('bookflix_users', JSON.stringify(users));
+
+    // If the target is the current logged-in user, sync their session role as well
+    if (targetUserId === user.id) {
+      const { passwordHash: _, ...userSession } = updatedUser;
+      localStorage.setItem('bookflix_currentUser', JSON.stringify(userSession));
+      setUser(userSession);
+    }
+  };
+
   const value = {
     user,
     loading,
@@ -152,7 +204,9 @@ export function AuthProvider({ children }) {
     updateProfile,
     toggleSaveBook,
     updateBookProgress,
-    setBookRating
+    setBookRating,
+    getAllUsers,
+    toggleUserAdminStatus
   };
 
   return (
