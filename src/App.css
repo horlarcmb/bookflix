@@ -1,0 +1,30 @@
+/* App-specific overrides and utilities */
+/* Main styles are in index.css */
+
+/* Smooth page transitions */
+.page-content {
+  animation: fadeIn 0.3s ease;
+}
+
+/* Mobile Menu Button - only show on mobile */
+@media (max-width: 768px) {
+  .mobile-menu-btn { display: flex !important; }
+}
+
+/* Custom scrollbar for content rows on hover */
+.content-row:hover {
+  scrollbar-width: thin;
+}
+
+/* Responsive chart cards */
+@media (max-width: 1024px) {
+  .admin-main > div > div[style*="grid-template-columns: 1fr 1fr"] {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .book-detail-body > div[style*="grid-template-columns: 2fr 1fr"] {
+    grid-template-columns: 1fr !important;
+  }
+}
