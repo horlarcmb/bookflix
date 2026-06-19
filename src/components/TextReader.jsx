@@ -76,8 +76,8 @@ export default function TextReader({ book }) {
 
   // Generate dynamic, realistic content if chapter isn't the first, or for general books
   const getDynamicContent = () => {
-    if (currentChapter === 1 && sampleChapterContent[1]) {
-      return sampleChapterContent[1].content;
+    if (currentChapter === 1 && sampleChapterContent[book.id]) {
+      return sampleChapterContent[book.id].content;
     }
     
     // Generate paragraphs
@@ -102,6 +102,9 @@ export default function TextReader({ book }) {
   const getChapterTitle = () => {
     if (contentData && contentData.chapters && contentData.chapters[currentChapter - 1]) {
       return contentData.chapters[currentChapter - 1].title || `Chapter ${currentChapter}`;
+    }
+    if (currentChapter === 1 && sampleChapterContent[book.id]) {
+      return sampleChapterContent[book.id].title;
     }
     return `Chapter ${currentChapter}: ${currentChapter === 1 ? 'The Awakening' : 'Pursuit'}`;
   };

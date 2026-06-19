@@ -4,12 +4,14 @@ import { motion } from 'framer-motion';
 import { FiBook, FiClock, FiAward, FiEdit, FiCheck } from 'react-icons/fi';
 import { FaCrown, FaFire } from 'react-icons/fa';
 import { useAuth } from '../context/AuthContext';
-import { getBookById, GENRES } from '../data/books';
+import { useBook } from '../context/BookContext';
+import { GENRES } from '../data/books';
 import BookCard from '../components/BookCard';
 
 export default function ProfilePage() {
   const navigate = useNavigate();
   const { user, updateProfile } = useAuth();
+  const { getBookById } = useBook();
   
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(user?.name || '');
@@ -82,14 +84,20 @@ export default function ProfilePage() {
               )}
               
               <div style={{ display: 'flex', gap: 'var(--space-md)', marginTop: 'var(--space-sm)' }}>
-                <span className="badge badge-premium"><FaCrown /> Premium Member</span>
+                {user.premium ? (
+                  <span className="badge badge-premium"><FaCrown /> Premium Member</span>
+                ) : (
+                  <span className="badge badge-type">Standard Plan</span>
+                )}
                 <span className="badge badge-type">Joined {user.joinedDate}</span>
               </div>
             </div>
             {!editing && (
-              <button className="btn btn-outline" style={{ marginLeft: 'auto' }} onClick={() => setEditing(true)}>
-                <FiEdit /> Edit Profile
-              </button>
+              <div style={{ display: 'flex', gap: '10px', marginLeft: 'auto', flexWrap: 'wrap' }}>
+                <button className="btn btn-outline" onClick={() => setEditing(true)}>
+                  <FiEdit /> Edit Profile
+                </button>
+              </div>
             )}
           </div>
 

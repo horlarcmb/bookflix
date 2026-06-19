@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { FiSearch, FiMenu, FiBell, FiUser, FiSettings, FiLogOut, FiCreditCard, FiBookOpen } from 'react-icons/fi';
+import { motion, AnimatePresence } from 'framer-motion';
+import { FiSearch, FiMenu, FiBell, FiUser, FiSettings, FiLogOut, FiCreditCard, FiBookOpen, FiX } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
 
 export default function Navbar({ onNotificationToggle, notificationCount }) {
@@ -129,12 +129,46 @@ export default function Navbar({ onNotificationToggle, notificationCount }) {
             </Link>
           )}
 
-          <button className="btn btn-ghost mobile-menu-btn" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            style={{ display: 'none' }}>
+          <button className="btn btn-ghost mobile-menu-btn" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
             <FiMenu />
           </button>
         </div>
       </div>
+
+      <AnimatePresence>
+        {mobileMenuOpen && (
+          <>
+            <motion.div
+              className="mobile-menu-backdrop"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setMobileMenuOpen(false)}
+            />
+            
+            <motion.div
+              className="mobile-menu-drawer"
+              initial={{ x: '100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '100%' }}
+              transition={{ type: 'tween', duration: 0.25 }}
+            >
+              <div className="mobile-menu-header">
+                <span className="navbar-logo" onClick={() => { setMobileMenuOpen(false); navigate('/'); }}>BookFlix</span>
+                <button className="btn btn-ghost btn-icon" onClick={() => setMobileMenuOpen(false)}>
+                  <FiX style={{ fontSize: '1.2rem' }} />
+                </button>
+              </div>
+              <div className="mobile-menu-links">
+                <Link to="/" onClick={() => setMobileMenuOpen(false)} className={isActive('/') ? 'active' : ''}>Home</Link>
+                <Link to="/browse" onClick={() => setMobileMenuOpen(false)} className={isActive('/browse') && !location.search.includes('Manga') ? 'active' : ''}>Browse</Link>
+                <Link to="/browse?type=Manga" onClick={() => setMobileMenuOpen(false)} className={location.search.includes('Manga') ? 'active' : ''}>Manga</Link>
+                <Link to="/library" onClick={() => setMobileMenuOpen(false)} className={isActive('/library') ? 'active' : ''}>My Library</Link>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </nav>
   );
 }

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   FiBarChart2, FiBook, FiUsers, FiDollarSign, 
@@ -12,8 +12,24 @@ export default function AdminDashboard() {
   const [activeSection, setActiveSection] = useState('overview');
   const { catalog, uploadBook, deleteBook } = useBook();
   const { user: currentUser, getAllUsers, toggleUserAdminStatus } = useAuth();
+  const [usersList, setUsersList] = useState([]);
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
+
+  // Fetch users when the section changes to "users"
+  useEffect(() => {
+    if (activeSection === 'users') {
+      const loadUsers = async () => {
+        try {
+          const list = await getAllUsers();
+          setUsersList(list);
+        } catch (err) {
+          console.error('Failed to fetch users in Admin panel', err);
+        }
+      };
+      loadUsers();
+    }
+  }, [activeSection]);
 
   // Form State
   const [title, setTitle] = useState('');
@@ -197,7 +213,7 @@ export default function AdminDashboard() {
       }, 2000);
     } catch (err) {
       console.error(err);
-      alert('Failed to save content to local storage db.');
+      alert('Failed to save content to server database.');
     }
   };
 
@@ -363,7 +379,7 @@ export default function AdminDashboard() {
                       {catalog.filter(b => b.publisher === 'User Self-Publish').length === 0 ? (
                         <tr>
                           <td colSpan="6" style={{ textAlign: 'center', color: 'var(--text-tertiary)', padding: '24px' }}>
-                            No custom books uploaded yet. Click "Upload New Content" to add books locally!
+                            No custom books uploaded yet. Click "Upload New Content" to publish books!
                           </td>
                         </tr>
                       ) : (
@@ -410,7 +426,7 @@ export default function AdminDashboard() {
                     </tr>
                   </thead>
                   <tbody>
-                    {getAllUsers().map((u, i) => (
+                    {usersList.map((u, i) => (
                       <tr key={u.id}>
                         <td style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                           <div style={{ width: 32, height: 32, borderRadius: '50%', background: `hsl(${(i * 70) % 360}, 75%, 45%)`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 700, color: '#fff' }}>
@@ -445,9 +461,16 @@ export default function AdminDashboard() {
                                 display: 'inline-flex',
                                 alignItems: 'center'
                               }}
-                              onClick={() => {
+                              onClick={async () => {
                                 if (window.confirm(`Are you sure you want to ${u.isAdmin ? 'revoke admin permissions from' : 'grant admin permissions to'} ${u.name}?`)) {
-                                  toggleUserAdminStatus(u.id);
+                                  try {
+                                    await toggleUserAdminStatus(u.id);
+                                    // Refresh the list from the server
+                                    const refreshed = await getAllUsers();
+                                    setUsersList(refreshed);
+                                  } catch (err) {
+                                    alert('Failed to toggle admin status.');
+                                  }
                                 }
                               }}
                             >
@@ -527,7 +550,7 @@ export default function AdminDashboard() {
               }}
             >
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-lg)' }}>
-                <h2>Upload Local Content</h2>
+                <h2>Upload Content</h2>
                 <button className="btn btn-ghost" onClick={() => setIsUploadOpen(false)}><FiX /></button>
               </div>
 
@@ -679,7 +702,7 @@ export default function AdminDashboard() {
                       style={{ flex: 2 }}
                       disabled={!coverBase64 || !uploadedContent}
                     >
-                      Publish Locally
+                      Publish
                     </button>
                   </div>
 

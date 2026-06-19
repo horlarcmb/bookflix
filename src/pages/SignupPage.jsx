@@ -15,6 +15,7 @@ export default function SignupPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [agree, setAgree] = useState(false);
+
   const [selectedGenres, setSelectedGenres] = useState([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -68,7 +69,7 @@ export default function SignupPage() {
     setError('');
     setLoading(true);
     try {
-      await signup(name, email, password, selectedGenres);
+      await signup(name, email, password, selectedGenres, false);
       navigate('/');
     } catch (err) {
       setError(err.message || 'Registration failed. Please try again.');
@@ -146,7 +147,8 @@ export default function SignupPage() {
                   required 
                 />
               </div>
-              <div className="form-group" style={{ display: 'flex', gap: '8px', alignItems: 'flex-start', margin: '12px 0' }}>
+
+              <div className="form-group" style={{ display: 'flex', gap: '8px', alignItems: 'flex-start', margin: '8px 0' }}>
                 <input 
                   type="checkbox" 
                   id="agree-checkbox"

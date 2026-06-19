@@ -1,10 +1,15 @@
 import { useState } from 'react';
-import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import { FiCheck, FiX, FiCreditCard } from 'react-icons/fi';
 import { FaCcVisa, FaCcMastercard, FaPaypal, FaApple, FaGoogle } from 'react-icons/fa';
+import { useAuth } from '../context/AuthContext';
 
 export default function SubscriptionPage() {
-  const [selectedPlan, setSelectedPlan] = useState('standard');
+  const navigate = useNavigate();
+  const { user, updateProfile } = useAuth();
+  const [successOpen, setSuccessOpen] = useState(false);
+  const [activeSub, setActiveSub] = useState(null);
 
   const plans = [
     {
@@ -55,6 +60,25 @@ export default function SubscriptionPage() {
     }
   ];
 
+  const handleSubscribe = (plan) => {
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+    const isPremium = plan.id !== 'free';
+    updateProfile({ premium: isPremium, planId: plan.id });
+    setActiveSub(plan);
+    setSuccessOpen(true);
+  };
+
+  const isCurrentPlan = (planId) => {
+    if (!user) return false;
+    if (user.premium) {
+      return user.planId === planId || (!user.planId && planId === 'standard');
+    }
+    return planId === 'free';
+  };
+
   return (
     <div className="page-content">
       <div className="container" style={{ paddingTop: 'var(--space-2xl)', textAlign: 'center' }}>
@@ -67,39 +91,56 @@ export default function SubscriptionPage() {
           </p>
 
           <div className="pricing-grid">
-            {plans.map((plan) => (
-              <motion.div
-                key={plan.id}
-                className={`pricing-card ${plan.featured ? 'featured' : ''}`}
-                whileHover={{ y: -8 }}
-                transition={{ type: 'spring', stiffness: 300 }}
-              >
-                <h3>{plan.name}</h3>
-                <div className="pricing-amount">
-                  {plan.price}<span>{plan.period}</span>
-                </div>
-                <div className="pricing-features">
-                  {plan.features.map((feature, i) => (
-                    <div key={i} className="pricing-feature">
-                      {feature.included ?
-                        <FiCheck className="check" /> :
-                        <FiX className="cross" />
-                      }
-                      <span style={{ color: feature.included ? 'var(--text-secondary)' : 'var(--text-muted)' }}>
-                        {feature.text}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-                <button
-                  className={`btn ${plan.featured ? 'btn-primary' : 'btn-outline'} btn-lg`}
-                  style={{ width: '100%' }}
-                  onClick={() => setSelectedPlan(plan.id)}
+            {plans.map((plan) => {
+              const current = isCurrentPlan(plan.id);
+              return (
+                <motion.div
+                  key={plan.id}
+                  className={`pricing-card ${plan.featured ? 'featured' : ''} ${current ? 'active-plan' : ''}`}
+                  whileHover={{ y: -8 }}
+                  transition={{ type: 'spring', stiffness: 300 }}
+                  style={{
+                    border: current ? '2px solid var(--success)' : undefined,
+                    position: 'relative'
+                  }}
                 >
-                  {plan.id === 'free' ? 'Get Started' : 'Subscribe Now'}
-                </button>
-              </motion.div>
-            ))}
+                  {current && (
+                    <div style={{
+                      position: 'absolute', top: '12px', right: '12px',
+                      background: 'var(--success)', color: '#000', fontSize: '0.75rem',
+                      fontWeight: 700, padding: '4px 10px', borderRadius: 'var(--radius-full)'
+                    }}>
+                      ACTIVE
+                    </div>
+                  )}
+                  <h3>{plan.name}</h3>
+                  <div className="pricing-amount">
+                    {plan.price}<span>{plan.period}</span>
+                  </div>
+                  <div className="pricing-features">
+                    {plan.features.map((feature, i) => (
+                      <div key={i} className="pricing-feature">
+                        {feature.included ?
+                          <FiCheck className="check" /> :
+                          <FiX className="cross" />
+                        }
+                        <span style={{ color: feature.included ? 'var(--text-secondary)' : 'var(--text-muted)' }}>
+                          {feature.text}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                  <button
+                    className={`btn ${current ? 'btn-secondary' : plan.featured ? 'btn-primary' : 'btn-outline'} btn-lg`}
+                    style={{ width: '100%' }}
+                    onClick={() => handleSubscribe(plan)}
+                    disabled={current}
+                  >
+                    {current ? 'Your Current Plan' : plan.id === 'free' ? 'Get Started' : 'Subscribe Now'}
+                  </button>
+                </motion.div>
+              );
+            })}
           </div>
 
           {/* Payment Methods */}
@@ -115,6 +156,51 @@ export default function SubscriptionPage() {
           </div>
         </motion.div>
       </div>
+
+      {/* Success Modal */}
+      <AnimatePresence>
+        {successOpen && activeSub && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 0.6 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setSuccessOpen(false)}
+              style={{ position: 'fixed', inset: 0, background: '#000', zIndex: 1999 }}
+            />
+            
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              transition={{ duration: 0.2 }}
+              style={{
+                position: 'fixed', top: '25%', left: '50%', x: '-50%',
+                width: '90%', maxWidth: '400px', background: 'var(--bg-card)',
+                border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)',
+                padding: 'var(--space-xl)', zIndex: 2000, textAlign: 'center',
+                boxShadow: 'var(--shadow-xl)'
+              }}
+            >
+              <div style={{
+                width: '60px', height: '60px', borderRadius: '50%',
+                background: 'rgba(70,211,105,0.2)', color: 'var(--success)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: '2rem', margin: '0 auto 20px'
+              }}>
+                <FiCheck />
+              </div>
+              <h3 style={{ fontSize: '1.5rem', marginBottom: '10px' }}>Subscription Successful!</h3>
+              <p style={{ color: 'var(--text-secondary)', marginBottom: '24px', lineHeight: '1.5' }}>
+                You are now subscribed to the <strong>{activeSub.name}</strong> plan. Enjoy unlimited reading on BookFlix!
+              </p>
+              <button className="btn btn-primary" style={{ width: '100%' }} onClick={() => setSuccessOpen(false)}>
+                Awesome
+              </button>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

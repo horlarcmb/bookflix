@@ -1,0 +1,17 @@
+[
+  {
+    "id": "admin-1",
+    "name": "Optimus",
+    "email": "rahmanridwanidowu@gmail.com",
+    "passwordHash": "$2b$10$3i66lgs6OC4xxVfNImKX3.7dgsKr9dk.EoEGODBgrNRfcUdpT5AN.",
+    "favoriteGenres": [],
+    "readingList": [],
+    "readHistory": {},
+    "ratings": {},
+    "joinedDate": "2026-06-19",
+    "theme": "dark",
+    "isAdmin": true,
+    "premium": true,
+    "planId": "premium"
+  }
+]

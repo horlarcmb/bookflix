@@ -62,7 +62,7 @@ export default function SocialLoginModal({ isOpen, onClose, onLogin, provider })
                 Continue with {provider}
               </h2>
               <p className="social-modal-subtitle">
-                Choose a simulated profile or type your email.
+                Enter your details to continue.
               </p>
             </div>
 
@@ -80,52 +80,6 @@ export default function SocialLoginModal({ isOpen, onClose, onLogin, provider })
                 {error}
               </div>
             )}
-
-            {/* Quick Accounts List */}
-            <div className="social-accounts-list">
-              {/* Admin Account Option */}
-              <button
-                type="button"
-                className="social-account-item"
-                onClick={() => handleSelectDefault('Horlarcmb', 'horlarcmb@gmail.com')}
-              >
-                <div className="social-account-info">
-                  <div className="social-account-avatar admin">
-                    H
-                  </div>
-                  <div className="social-account-details">
-                    <div className="social-account-name">
-                      Horlarcmb
-                      <span className="social-account-badge">Admin</span>
-                    </div>
-                    <div className="social-account-email">horlarcmb@gmail.com</div>
-                  </div>
-                </div>
-                <FaChevronRight style={{ color: 'var(--text-tertiary)', fontSize: '0.8rem' }} />
-              </button>
-
-              {/* Guest Account Option */}
-              <button
-                type="button"
-                className="social-account-item"
-                onClick={() => handleSelectDefault('Guest Reader', 'guest@gmail.com')}
-              >
-                <div className="social-account-info">
-                  <div className="social-account-avatar guest">
-                    G
-                  </div>
-                  <div className="social-account-details">
-                    <div className="social-account-name">Guest Reader</div>
-                    <div className="social-account-email">guest@gmail.com</div>
-                  </div>
-                </div>
-                <FaChevronRight style={{ color: 'var(--text-tertiary)', fontSize: '0.8rem' }} />
-              </button>
-            </div>
-
-            <div className="social-modal-divider">
-              Or use another account
-            </div>
 
             {/* Custom Input Form */}
             <form onSubmit={handleCustomSubmit} className="social-form">

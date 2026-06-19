@@ -1,12 +1,10 @@
 import { createContext, useContext, useState, useEffect } from 'react';
-import { books as defaultBooks } from '../data/books';
-import { getAllCustomBooks, saveCustomBook, deleteCustomBook, getCustomBookContent } from '../services/db';
 import { catalogContainer } from '../data/recommendations';
 
 const BookContext = createContext(null);
 
 export function BookProvider({ children }) {
-  const [catalog, setCatalog] = useState(defaultBooks);
+  const [catalog, setCatalog] = useState([]);
   const [loading, setLoading] = useState(true);
 
   // Keep recommendations engine in sync with dynamic catalog
@@ -14,14 +12,28 @@ export function BookProvider({ children }) {
     catalogContainer.books = catalog;
   }, [catalog]);
 
-  // Load custom books on mount
+  // Helper helper to get headers with JWT token
+  const getAuthHeaders = () => {
+    const token = localStorage.getItem('bookflix_token');
+    return {
+      'Content-Type': 'application/json',
+      'Authorization': token ? `Bearer ${token}` : ''
+    };
+  };
+
+  // Load backend catalog on mount
   useEffect(() => {
     async function loadCatalog() {
       try {
-        const customList = await getAllCustomBooks();
-        setCatalog([...defaultBooks, ...customList]);
+        const res = await fetch('/api/books');
+        if (res.ok) {
+          const booksList = await res.json();
+          setCatalog(booksList);
+        } else {
+          console.error('Failed to load books catalog from server');
+        }
       } catch (e) {
-        console.error('Failed to load custom books catalog', e);
+        console.error('Failed to load books catalog from server api', e);
       } finally {
         setLoading(false);
       }
@@ -30,20 +42,37 @@ export function BookProvider({ children }) {
   }, []);
 
   const uploadBook = async (metadata, content) => {
-    // Save to IndexedDB
-    await saveCustomBook(metadata, content);
+    const res = await fetch('/api/books', {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ metadata, content })
+    });
+    
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.message || 'Failed to save content on server.');
+    }
     
     // Add to catalog state
     setCatalog(prev => {
-      // If book already exists, overwrite it, else append
       const filtered = prev.filter(b => b.id !== metadata.id);
-      return [...filtered, metadata];
+      return [...filtered, data];
     });
+    
+    return data;
   };
 
   const deleteBook = async (id) => {
     const numericId = parseInt(id);
-    await deleteCustomBook(numericId);
+    const res = await fetch(`/api/books/${numericId}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders()
+    });
+    
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.message || 'Failed to delete content on server.');
+    }
     
     // Remove from catalog state
     setCatalog(prev => prev.filter(b => b.id !== numericId));
@@ -97,11 +126,18 @@ export function BookProvider({ children }) {
 
   const fetchBookContent = async (bookId) => {
     const numericId = parseInt(bookId);
-    // If ID is within static defaultBooks range, return null (use default mocks)
-    if (defaultBooks.some(b => b.id === numericId)) {
-      return null;
+    const res = await fetch(`/api/books/${numericId}/content`, {
+      headers: getAuthHeaders()
+    });
+    
+    if (res.status === 404) return null;
+    
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.message || 'Failed to fetch content from server.');
     }
-    return await getCustomBookContent(numericId);
+    
+    return data;
   };
 
   const value = {

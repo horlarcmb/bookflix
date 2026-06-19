@@ -25,6 +25,7 @@ import SubscriptionPage from './pages/SubscriptionPage';
 import AdminDashboard from './pages/AdminDashboard';
 import PrivacyPolicy from './pages/PrivacyPolicy';
 import TermsOfService from './pages/TermsOfService';
+import MockInfoPage from './pages/MockInfoPage';
 
 import './App.css';
 
@@ -82,6 +83,12 @@ function AppLayout() {
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/terms" element={<TermsOfService />} />
+          <Route path="/about" element={<MockInfoPage />} />
+          <Route path="/careers" element={<MockInfoPage />} />
+          <Route path="/blog" element={<MockInfoPage />} />
+          <Route path="/contact" element={<MockInfoPage />} />
+          <Route path="/help" element={<MockInfoPage />} />
+          <Route path="/cookies" element={<MockInfoPage />} />
 
           {/* Protected Routes */}
           <Route path="/read/:id" element={

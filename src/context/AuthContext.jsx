@@ -2,230 +2,227 @@ import { createContext, useContext, useState, useEffect } from 'react';
 
 const AuthContext = createContext(null);
 
-// Helper function to hash passwords using SHA-256 via Web Crypto API
-async function hashPassword(password) {
-  const msgBuffer = new TextEncoder().encode(password);
-  const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-}
-
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  // Helper helper to get headers with JWT token
+  const getAuthHeaders = () => {
+    const token = localStorage.getItem('bookflix_token');
+    return {
+      'Content-Type': 'application/json',
+      'Authorization': token ? `Bearer ${token}` : ''
+    };
+  };
+
   useEffect(() => {
-    // Load current user from localStorage on mount
-    const storedUser = localStorage.getItem('bookflix_currentUser');
-    if (storedUser) {
+    async function loadCurrentUser() {
+      const token = localStorage.getItem('bookflix_token');
+      if (!token) {
+        setLoading(false);
+        return;
+      }
+      
       try {
-        setUser(JSON.parse(storedUser));
-      } catch (e) {
-        console.error('Failed to parse current user', e);
-        localStorage.removeItem('bookflix_currentUser');
+        const res = await fetch('/api/auth/me', {
+          headers: getAuthHeaders()
+        });
+        
+        if (res.ok) {
+          const userData = await res.json();
+          setUser(userData);
+          localStorage.setItem('bookflix_currentUser', JSON.stringify(userData));
+        } else {
+          // Token expired or invalid
+          localStorage.removeItem('bookflix_token');
+          localStorage.removeItem('bookflix_currentUser');
+          setUser(null);
+        }
+      } catch (err) {
+        console.error('Failed to load user from backend API', err);
+        // Fallback to local session cache if server offline
+        const storedUser = localStorage.getItem('bookflix_currentUser');
+        if (storedUser) {
+          setUser(JSON.parse(storedUser));
+        }
+      } finally {
+        setLoading(false);
       }
     }
-    
-    // Seed default admin account if users list is empty
-    async function seedAdmin() {
-      const users = JSON.parse(localStorage.getItem('bookflix_users') || '[]');
-      if (users.length === 0) {
-        const adminHash = await hashPassword('AdminPassword123!');
-        const defaultAdmin = {
-          id: 'admin-1',
-          name: 'System Admin',
-          email: 'admin@bookflix.com',
-          passwordHash: adminHash,
-          favoriteGenres: [],
-          readingList: [],
-          readHistory: {},
-          ratings: {},
-          joinedDate: new Date().toISOString().split('T')[0],
-          theme: 'dark',
-          isAdmin: true
-        };
-        localStorage.setItem('bookflix_users', JSON.stringify([defaultAdmin]));
-      }
-    }
-    seedAdmin().then(() => setLoading(false));
+    loadCurrentUser();
   }, []);
 
-  const signup = async (name, email, password, favoriteGenres = []) => {
-    const users = JSON.parse(localStorage.getItem('bookflix_users') || '[]');
+  const signup = async (name, email, password, favoriteGenres = [], isAdmin = false) => {
+    const res = await fetch('/api/auth/signup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, email, password, favoriteGenres, isAdmin })
+    });
     
-    // Check if user already exists
-    if (users.some(u => u.email.toLowerCase() === email.toLowerCase())) {
-      throw new Error('An account with this email already exists.');
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.message || 'Signup failed.');
     }
-
-    const passwordHash = await hashPassword(password);
     
-    // Auto-promote admin@bookflix.com or emails containing "horlarcmb"
-    const lowerEmail = email.toLowerCase();
-    const isAdmin = lowerEmail === 'admin@bookflix.com' || lowerEmail.includes('horlarcmb');
-
-    const newUser = {
-      id: Date.now().toString(),
-      name,
-      email: lowerEmail,
-      passwordHash,
-      favoriteGenres,
-      readingList: [],
-      readHistory: {},
-      ratings: {},
-      joinedDate: new Date().toISOString().split('T')[0],
-      theme: 'dark',
-      isAdmin
-    };
-
-    users.push(newUser);
-    localStorage.setItem('bookflix_users', JSON.stringify(users));
-
-    // Auto-login
-    const { passwordHash: _, ...userSession } = newUser;
-    localStorage.setItem('bookflix_currentUser', JSON.stringify(userSession));
-    setUser(userSession);
-    return userSession;
+    localStorage.setItem('bookflix_token', data.token);
+    localStorage.setItem('bookflix_currentUser', JSON.stringify(data.user));
+    setUser(data.user);
+    return data.user;
   };
 
   const login = async (email, password) => {
-    const users = JSON.parse(localStorage.getItem('bookflix_users') || '[]');
-    const userAccount = users.find(u => u.email.toLowerCase() === email.toLowerCase());
-
-    if (!userAccount) {
-      throw new Error('Invalid email or password.');
+    const res = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password })
+    });
+    
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.message || 'Login failed.');
     }
-
-    const inputHash = await hashPassword(password);
-    if (userAccount.passwordHash !== inputHash) {
-      throw new Error('Invalid email or password.');
-    }
-
-    const { passwordHash: _, ...userSession } = userAccount;
-    localStorage.setItem('bookflix_currentUser', JSON.stringify(userSession));
-    setUser(userSession);
-    return userSession;
+    
+    localStorage.setItem('bookflix_token', data.token);
+    localStorage.setItem('bookflix_currentUser', JSON.stringify(data.user));
+    setUser(data.user);
+    return data.user;
   };
 
   const logout = () => {
+    localStorage.removeItem('bookflix_token');
     localStorage.removeItem('bookflix_currentUser');
     setUser(null);
   };
 
-  const updateProfile = (updates) => {
-    if (!user) return;
-
-    const users = JSON.parse(localStorage.getItem('bookflix_users') || '[]');
-    const userIndex = users.findIndex(u => u.id === user.id);
-
-    if (userIndex === -1) return;
-
-    // Update in users database
-    const updatedAccount = { ...users[userIndex], ...updates };
-    // Prevent overriding sensitive internal flags directly if not needed, but allow valid keys
-    users[userIndex] = updatedAccount;
-    localStorage.setItem('bookflix_users', JSON.stringify(users));
-
-    // Update session state (excluding passwordHash)
-    const { passwordHash: _, ...userSession } = updatedAccount;
-    localStorage.setItem('bookflix_currentUser', JSON.stringify(userSession));
-    setUser(userSession);
-  };
-
-  const toggleSaveBook = (bookId) => {
-    if (!user) return false;
-    const numericId = parseInt(bookId);
-    let updatedReadingList = [...(user.readingList || [])];
+  const updateProfile = async (updates) => {
+    const res = await fetch('/api/auth/profile', {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(updates)
+    });
     
-    const isSaved = updatedReadingList.includes(numericId);
-    if (isSaved) {
-      updatedReadingList = updatedReadingList.filter(id => id !== numericId);
-    } else {
-      updatedReadingList.push(numericId);
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.message || 'Failed to update profile.');
     }
-
-    updateProfile({ readingList: updatedReadingList });
-    return !isSaved;
-  };
-
-  const updateBookProgress = (bookId, chapter, progressVal) => {
-    if (!user) return;
-    const numericId = parseInt(bookId);
-    const updatedHistory = { ...(user.readHistory || {}) };
     
-    updatedHistory[numericId] = {
-      chapter,
-      progress: progressVal,
-      updatedAt: new Date().toISOString()
-    };
-
-    updateProfile({ readHistory: updatedHistory });
+    localStorage.setItem('bookflix_currentUser', JSON.stringify(data));
+    setUser(data);
+    return data;
   };
 
-  const setBookRating = (bookId, rating) => {
-    if (!user) return;
-    const numericId = parseInt(bookId);
-    const updatedRatings = { ...(user.ratings || {}) };
-    updatedRatings[numericId] = rating;
-    updateProfile({ ratings: updatedRatings });
-  };
-
-  const getAllUsers = () => {
-    return JSON.parse(localStorage.getItem('bookflix_users') || '[]');
-  };
-
-  const toggleUserAdminStatus = (targetUserId) => {
-    if (!user || !user.isAdmin) return; // Only admins can promote/demote
-
-    const users = JSON.parse(localStorage.getItem('bookflix_users') || '[]');
-    const userIndex = users.findIndex(u => u.id === targetUserId);
-
-    if (userIndex === -1) return;
-
-    // Toggle isAdmin flag
-    const updatedUser = { ...users[userIndex], isAdmin: !users[userIndex].isAdmin };
-    users[userIndex] = updatedUser;
-    localStorage.setItem('bookflix_users', JSON.stringify(users));
-
-    // If the target is the current logged-in user, sync their session role as well
-    if (targetUserId === user.id) {
-      const { passwordHash: _, ...userSession } = updatedUser;
-      localStorage.setItem('bookflix_currentUser', JSON.stringify(userSession));
-      setUser(userSession);
+  const toggleSaveBook = async (bookId) => {
+    const res = await fetch('/api/auth/toggle-save', {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ bookId })
+    });
+    
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.message || 'Failed to toggle save.');
     }
+    
+    localStorage.setItem('bookflix_currentUser', JSON.stringify(data.user));
+    setUser(data.user);
+    return data.saved;
+  };
+
+  const updateBookProgress = async (bookId, chapter, progressVal) => {
+    const res = await fetch('/api/auth/progress', {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ bookId, chapter, progress: progressVal })
+    });
+    
+    const data = await res.json();
+    if (res.ok) {
+      localStorage.setItem('bookflix_currentUser', JSON.stringify(data));
+      setUser(data);
+    }
+  };
+
+  const setBookRating = async (bookId, rating) => {
+    const res = await fetch('/api/auth/rate', {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ bookId, rating })
+    });
+    
+    const data = await res.json();
+    if (res.ok) {
+      localStorage.setItem('bookflix_currentUser', JSON.stringify(data));
+      setUser(data);
+    }
+  };
+
+  const getAllUsers = async () => {
+    const res = await fetch('/api/auth/users', {
+      headers: getAuthHeaders()
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.message || 'Failed to fetch users.');
+    }
+    return data;
+  };
+
+  const toggleUserAdminStatus = async (targetUserId) => {
+    const res = await fetch(`/api/auth/users/${targetUserId}/admin`, {
+      method: 'PUT',
+      headers: getAuthHeaders()
+    });
+    
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.message || 'Failed to toggle role.');
+    }
+    return data.user;
   };
 
   const loginWithSocial = async (name, email) => {
-    const users = JSON.parse(localStorage.getItem('bookflix_users') || '[]');
-    let userAccount = users.find(u => u.email.toLowerCase() === email.toLowerCase());
-
-    if (!userAccount) {
-      // Create new social account
-      const lowerEmail = email.toLowerCase();
-      const isAdmin = lowerEmail === 'admin@bookflix.com' || lowerEmail.includes('horlarcmb');
+    const signupData = {
+      name,
+      email,
+      password: 'SocialAuthAccountPassword123!',
+      favoriteGenres: []
+    };
+    
+    try {
+      const res = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(signupData)
+      });
+      const data = await res.json();
       
-      userAccount = {
-        id: Date.now().toString(),
-        name,
-        email: lowerEmail,
-        passwordHash: 'social-auth-account',
-        favoriteGenres: [],
-        readingList: [],
-        readHistory: {},
-        ratings: {},
-        joinedDate: new Date().toISOString().split('T')[0],
-        theme: 'dark',
-        isAdmin
-      };
-      
-      users.push(userAccount);
-      localStorage.setItem('bookflix_users', JSON.stringify(users));
+      if (res.ok) {
+        localStorage.setItem('bookflix_token', data.token);
+        localStorage.setItem('bookflix_currentUser', JSON.stringify(data.user));
+        setUser(data.user);
+        return data.user;
+      } else if (data.message && data.message.includes('exists')) {
+        const loginRes = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password: 'SocialAuthAccountPassword123!' })
+        });
+        const loginData = await loginRes.json();
+        if (loginRes.ok) {
+          localStorage.setItem('bookflix_token', loginData.token);
+          localStorage.setItem('bookflix_currentUser', JSON.stringify(loginData.user));
+          setUser(loginData.user);
+          return loginData.user;
+        } else {
+          throw new Error(loginData.message || 'Social login failed.');
+        }
+      } else {
+        throw new Error(data.message || 'Social login failed.');
+      }
+    } catch (err) {
+      console.error(err);
+      throw err;
     }
-
-    const { passwordHash: _, ...userSession } = userAccount;
-    localStorage.setItem('bookflix_currentUser', JSON.stringify(userSession));
-    setUser(userSession);
-    return userSession;
   };
 
   const value = {
@@ -257,4 +254,3 @@ export function useAuth() {
   }
   return context;
 }
-
