@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { FiBook, FiClock, FiAward, FiEdit, FiCheck } from 'react-icons/fi';
+import { FiBook, FiClock, FiEdit, FiCheck } from 'react-icons/fi';
 import { FaCrown, FaFire } from 'react-icons/fa';
 import { useAuth } from '../context/AuthContext';
 import { useBook } from '../context/BookContext';
@@ -125,7 +125,6 @@ export default function ProfilePage() {
               { value: recentlyRead.length.toString(), label: 'Books Active', icon: <FiBook /> },
               { value: (recentlyRead.length * 4.2).toFixed(1) + ' hrs', label: 'Est. Read Time', icon: <FiClock /> },
               { value: '14', label: 'Day Streak', icon: <FaFire /> },
-              { value: '6', label: 'Achievements', icon: <FiAward /> },
             ].map((stat, i) => (
               <motion.div key={i} className="profile-stat" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }}>
                 <div className="profile-stat-value">{stat.value}</div>
@@ -164,32 +163,7 @@ export default function ProfilePage() {
             </div>
           )}
 
-          {/* Achievements */}
-          <h3 style={{ marginBottom: 'var(--space-md)' }}>Achievements</h3>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 'var(--space-md)' }}>
-            {[
-              { icon: '📚', title: 'Bookworm', desc: 'Active reading account' },
-              { icon: '🔥', title: 'On Fire', desc: 'Consistent reading streak' },
-              { icon: '🌙', title: 'Night Owl', desc: 'Read past midnight 5 times' },
-              { icon: '⭐', title: 'Critic', desc: 'Submit a book rating' },
-              { icon: '🎯', title: 'Genre Explorer', desc: 'Add 3+ genres to profile' },
-              { icon: '🏆', title: 'Speed Reader', desc: 'Finish 100% of a chapter' },
-            ].map((badge, i) => (
-              <motion.div
-                key={i}
-                whileHover={{ scale: 1.03 }}
-                style={{
-                  background: 'var(--bg-card)', border: '1px solid var(--border)',
-                  borderRadius: 'var(--radius-lg)', padding: 'var(--space-lg)',
-                  textAlign: 'center', cursor: 'pointer'
-                }}
-              >
-                <div style={{ fontSize: '2.5rem', marginBottom: '8px' }}>{badge.icon}</div>
-                <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>{badge.title}</div>
-                <div style={{ fontSize: '0.8rem', color: 'var(--text-tertiary)' }}>{badge.desc}</div>
-              </motion.div>
-            ))}
-          </div>
+
         </motion.div>
       </div>
     </div>

@@ -14,10 +14,14 @@ app.use(express.json({ limit: '50mb' })); // Support base64 image uploads
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // Database Paths
+const mongoose = require('mongoose');
 const DATA_DIR = path.join(__dirname, 'server_data');
 const USERS_FILE = path.join(DATA_DIR, 'users.json');
 const BOOKS_FILE = path.join(DATA_DIR, 'books.json');
 const CONTENTS_FILE = path.join(DATA_DIR, 'book_contents.json');
+const TELEMETRY_FILE = path.join(DATA_DIR, 'telemetry.json');
+const TRANSACTIONS_FILE = path.join(DATA_DIR, 'transactions.json');
+const SETTINGS_FILE = path.join(DATA_DIR, 'system_settings.json');
 
 // Ensure database files exist
 if (!fs.existsSync(DATA_DIR)) {
@@ -33,6 +37,9 @@ const initJsonFile = (filePath, defaultVal = []) => {
 initJsonFile(USERS_FILE, []);
 initJsonFile(BOOKS_FILE, []);
 initJsonFile(CONTENTS_FILE, {});
+initJsonFile(TELEMETRY_FILE, []);
+initJsonFile(TRANSACTIONS_FILE, []);
+initJsonFile(SETTINGS_FILE, { balance: 0.00, bankDetails: null });
 
 // Helper DB Read/Write Functions
 const readDB = (filePath) => {
@@ -43,33 +50,376 @@ const writeDB = (filePath, data) => {
   fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
 };
 
-// Seed default admin account on startup if users db is empty
-const seedAdmin = async () => {
-  const users = readDB(USERS_FILE);
-  if (users.length === 0) {
-    const salt = await bcrypt.genSalt(10);
-    const adminHash = await bcrypt.hash('BookFlix@Optimus2026!', salt);
-    const defaultAdmin = {
-      id: 'admin-1',
-      name: 'Optimus',
-      email: 'rahmanridwanidowu@gmail.com',
-      passwordHash: adminHash,
-      favoriteGenres: [],
-      readingList: [],
-      readHistory: {},
-      ratings: {},
-      joinedDate: new Date().toISOString().split('T')[0],
-      theme: 'dark',
-      isAdmin: true,
-      premium: true,
-      planId: 'premium'
-    };
-    users.push(defaultAdmin);
-    writeDB(USERS_FILE, users);
-    console.log('Seeded default admin account successfully.');
+// --- MONGODB CONNECTION SETUP ---
+const MONGODB_URI = process.env.MONGODB_URI;
+let useMongo = false;
+
+if (MONGODB_URI) {
+  mongoose.connect(MONGODB_URI)
+    .then(() => {
+      console.log('Connected to MongoDB successfully.');
+      useMongo = true;
+      seedAdmin();
+    })
+    .catch(err => {
+      console.error('Error connecting to MongoDB, falling back to JSON storage:', err);
+      useMongo = false;
+      seedAdmin();
+    });
+} else {
+  console.log('MONGODB_URI not set. Running with local JSON database files.');
+  useMongo = false;
+  setTimeout(() => seedAdmin(), 100);
+}
+
+// --- MONGOOSE SCHEMAS & MODELS ---
+const UserSchema = new mongoose.Schema({
+  id: { type: String, required: true, unique: true },
+  name: { type: String, required: true },
+  email: { type: String, required: true, unique: true, lowercase: true, trim: true },
+  passwordHash: { type: String, required: true },
+  favoriteGenres: { type: [String], default: [] },
+  readingList: { type: [Number], default: [] },
+  readHistory: { type: Map, of: new mongoose.Schema({
+    chapter: Number,
+    progress: Number,
+    updatedAt: String
+  }, { _id: false }), default: {} },
+  ratings: { type: Map, of: Number, default: {} },
+  joinedDate: { type: String, default: () => new Date().toISOString().split('T')[0] },
+  theme: { type: String, default: 'dark' },
+  isAdmin: { type: Boolean, default: false },
+  premium: { type: Boolean, default: false },
+  planId: { type: String, default: 'free' }
+});
+
+const BookSchema = new mongoose.Schema({
+  id: { type: Number, required: true, unique: true },
+  title: { type: String, required: true },
+  author: { type: String, required: true },
+  cover: { type: String, required: true },
+  gradient: { type: String, default: null },
+  genre: { type: [String], default: ['Fiction'] },
+  type: { type: String, required: true },
+  contentFormat: { type: String, required: true },
+  rating: { type: Number, default: 4.5 },
+  synopsis: { type: String, required: true },
+  chapters: { type: Number, default: 0 },
+  status: { type: String, default: 'Completed' },
+  language: { type: String, default: 'English' },
+  tags: { type: [String], default: [] },
+  readCount: { type: Number, default: 0 },
+  premium: { type: Boolean, default: false },
+  featured: { type: Boolean, default: false },
+  isAIGenerated: { type: Boolean, default: false },
+  dateAdded: { type: String, default: () => new Date().toISOString().split('T')[0] },
+  pages: { type: Number, default: 0 },
+  publisher: { type: String, default: 'User Self-Publish' }
+});
+
+const BookContentSchema = new mongoose.Schema({
+  bookId: { type: Number, required: true, unique: true },
+  chapters: { type: [new mongoose.Schema({
+    title: String,
+    content: String
+  }, { _id: false })] },
+  pages: { type: [new mongoose.Schema({
+    pageNumber: Number,
+    imageBase64: String,
+    dialogue: String,
+    description: String
+  }, { _id: false })] }
+});
+
+const UserModel = mongoose.model('User', UserSchema);
+const BookModel = mongoose.model('Book', BookSchema);
+const BookContentModel = mongoose.model('BookContent', BookContentSchema);
+
+const TelemetrySchema = new mongoose.Schema({
+  userId: { type: String, default: null },
+  userEmail: { type: String, default: null },
+  eventType: { type: String, required: true },
+  metadata: { type: mongoose.Schema.Types.Mixed, default: {} },
+  timestamp: { type: Date, default: Date.now }
+});
+
+const TransactionSchema = new mongoose.Schema({
+  id: { type: String, required: true, unique: true },
+  userId: { type: String, required: true },
+  userEmail: { type: String, required: true },
+  type: { type: String, required: true },
+  amount: { type: Number, required: true },
+  planId: { type: String, default: null },
+  bankDetails: { type: mongoose.Schema.Types.Mixed, default: null },
+  timestamp: { type: Date, default: Date.now }
+});
+
+const SystemSettingsSchema = new mongoose.Schema({
+  balance: { type: Number, default: 0.00 },
+  bankDetails: {
+    bankName: { type: String, default: null },
+    accountNumber: { type: String, default: null },
+    routingNumber: { type: String, default: null },
+    holderName: { type: String, default: null }
+  }
+});
+
+const TelemetryModel = mongoose.model('Telemetry', TelemetrySchema);
+const TransactionModel = mongoose.model('Transaction', TransactionSchema);
+const SystemSettingsModel = mongoose.model('SystemSettings', SystemSettingsSchema);
+
+// --- DATABASE ABSTRACTION LAYER ---
+const db = {
+  getUsers: async () => {
+    if (useMongo) {
+      return await UserModel.find({}).lean();
+    } else {
+      return readDB(USERS_FILE);
+    }
+  },
+
+  findUserByEmail: async (email) => {
+    const lowerEmail = email.toLowerCase();
+    if (useMongo) {
+      return await UserModel.findOne({ email: lowerEmail }).lean();
+    } else {
+      const users = readDB(USERS_FILE);
+      return users.find(u => u.email === lowerEmail) || null;
+    }
+  },
+
+  findUserById: async (id) => {
+    if (useMongo) {
+      return await UserModel.findOne({ id }).lean();
+    } else {
+      const users = readDB(USERS_FILE);
+      return users.find(u => u.id === id) || null;
+    }
+  },
+
+  createUser: async (userData) => {
+    if (useMongo) {
+      const user = new UserModel(userData);
+      await user.save();
+      return user.toObject();
+    } else {
+      const users = readDB(USERS_FILE);
+      users.push(userData);
+      writeDB(USERS_FILE, users);
+      return userData;
+    }
+  },
+
+  updateUser: async (id, updates) => {
+    if (useMongo) {
+      const updateData = {};
+      const allowedKeys = ['name', 'favoriteGenres', 'theme', 'premium', 'planId', 'isAdmin', 'readingList', 'readHistory', 'ratings'];
+      allowedKeys.forEach(k => {
+        if (updates[k] !== undefined) {
+          updateData[k] = updates[k];
+        }
+      });
+      return await UserModel.findOneAndUpdate({ id }, { $set: updateData }, { new: true }).lean();
+    } else {
+      const users = readDB(USERS_FILE);
+      const idx = users.findIndex(u => u.id === id);
+      if (idx === -1) return null;
+      
+      const allowedKeys = ['name', 'favoriteGenres', 'theme', 'premium', 'planId', 'isAdmin', 'readingList', 'readHistory', 'ratings'];
+      allowedKeys.forEach(key => {
+        if (updates[key] !== undefined) {
+          if (key === 'isAdmin' && updates[key] === true) {
+            users[idx]['premium'] = true;
+            users[idx]['planId'] = 'premium';
+          }
+          users[idx][key] = updates[key];
+        }
+      });
+      writeDB(USERS_FILE, users);
+      return users[idx];
+    }
+  },
+
+  getBooks: async () => {
+    if (useMongo) {
+      return await BookModel.find({}).lean();
+    } else {
+      return readDB(BOOKS_FILE);
+    }
+  },
+
+  saveBook: async (metadata, content) => {
+    if (useMongo) {
+      await BookModel.findOneAndDelete({ id: metadata.id });
+      const book = new BookModel(metadata);
+      await book.save();
+
+      await BookContentModel.findOneAndDelete({ bookId: metadata.id });
+      const bookContent = new BookContentModel({
+        bookId: metadata.id,
+        ...content
+      });
+      await bookContent.save();
+      return metadata;
+    } else {
+      const books = readDB(BOOKS_FILE);
+      const contents = readDB(CONTENTS_FILE);
+
+      const filteredMetadata = books.filter(b => b.id !== metadata.id);
+      filteredMetadata.push(metadata);
+      writeDB(BOOKS_FILE, filteredMetadata);
+
+      contents[metadata.id] = {
+        bookId: metadata.id,
+        ...content
+      };
+      writeDB(CONTENTS_FILE, contents);
+      return metadata;
+    }
+  },
+
+  deleteBook: async (id) => {
+    if (useMongo) {
+      await BookModel.findOneAndDelete({ id });
+      await BookContentModel.findOneAndDelete({ bookId: id });
+      return true;
+    } else {
+      const books = readDB(BOOKS_FILE);
+      const contents = readDB(CONTENTS_FILE);
+
+      const filteredMetadata = books.filter(b => b.id !== id);
+      writeDB(BOOKS_FILE, filteredMetadata);
+
+      if (contents[id]) {
+        delete contents[id];
+        writeDB(CONTENTS_FILE, contents);
+      }
+      return true;
+    }
+  },
+
+  getBookContent: async (id) => {
+    if (useMongo) {
+      return await BookContentModel.findOne({ bookId: id }).lean();
+    } else {
+      const contents = readDB(CONTENTS_FILE);
+      return contents[id] || null;
+    }
+  },
+
+  logTelemetry: async (eventData) => {
+    if (useMongo) {
+      const log = new TelemetryModel(eventData);
+      await log.save();
+      return log.toObject();
+    } else {
+      const logs = readDB(TELEMETRY_FILE);
+      const newLog = { ...eventData, timestamp: new Date().toISOString() };
+      logs.push(newLog);
+      writeDB(TELEMETRY_FILE, logs);
+      return newLog;
+    }
+  },
+
+  getTelemetry: async () => {
+    if (useMongo) {
+      return await TelemetryModel.find({}).sort({ timestamp: -1 }).limit(100).lean();
+    } else {
+      const logs = readDB(TELEMETRY_FILE);
+      return logs.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)).slice(0, 100);
+    }
+  },
+
+  createTransaction: async (txData) => {
+    if (useMongo) {
+      const tx = new TransactionModel(txData);
+      await tx.save();
+      return tx.toObject();
+    } else {
+      const txs = readDB(TRANSACTIONS_FILE);
+      const newTx = { ...txData, timestamp: new Date().toISOString() };
+      txs.push(newTx);
+      writeDB(TRANSACTIONS_FILE, txs);
+      return newTx;
+    }
+  },
+
+  getTransactions: async () => {
+    if (useMongo) {
+      return await TransactionModel.find({}).sort({ timestamp: -1 }).lean();
+    } else {
+      const txs = readDB(TRANSACTIONS_FILE);
+      return txs.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+    }
+  },
+
+  getSystemSettings: async () => {
+    if (useMongo) {
+      let settings = await SystemSettingsModel.findOne({}).lean();
+      if (!settings) {
+        settings = new SystemSettingsModel({ balance: 0.00, bankDetails: null });
+        await SystemSettingsModel.create(settings);
+      }
+      return settings;
+    } else {
+      let settings = readDB(SETTINGS_FILE);
+      if (!settings || settings.balance === undefined) {
+        settings = { balance: 0.00, bankDetails: null };
+        writeDB(SETTINGS_FILE, settings);
+      }
+      return settings;
+    }
+  },
+
+  updateSystemSettings: async (updates) => {
+    if (useMongo) {
+      let settings = await SystemSettingsModel.findOne({});
+      if (!settings) {
+        settings = new SystemSettingsModel({ balance: 0.00, bankDetails: null });
+      }
+      if (updates.balance !== undefined) settings.balance = updates.balance;
+      if (updates.bankDetails !== undefined) settings.bankDetails = updates.bankDetails;
+      await settings.save();
+      return settings.toObject();
+    } else {
+      const settings = readDB(SETTINGS_FILE) || { balance: 0.00, bankDetails: null };
+      if (updates.balance !== undefined) settings.balance = updates.balance;
+      if (updates.bankDetails !== undefined) settings.bankDetails = updates.bankDetails;
+      writeDB(SETTINGS_FILE, settings);
+      return settings;
+    }
   }
 };
-seedAdmin();
+
+// Seed default admin account on startup if users db is empty
+const seedAdmin = async () => {
+  try {
+    const users = await db.getUsers();
+    if (users.length === 0) {
+      const salt = await bcrypt.genSalt(10);
+      const adminHash = await bcrypt.hash('BookFlix@Optimus2026!', salt);
+      const defaultAdmin = {
+        id: 'admin-1',
+        name: 'Optimus',
+        email: 'rahmanridwanidowu@gmail.com',
+        passwordHash: adminHash,
+        favoriteGenres: [],
+        readingList: [],
+        readHistory: {},
+        ratings: {},
+        joinedDate: new Date().toISOString().split('T')[0],
+        theme: 'dark',
+        isAdmin: true,
+        premium: true,
+        planId: 'premium'
+      };
+      await db.createUser(defaultAdmin);
+      console.log('Seeded default admin account successfully.');
+    }
+  } catch (err) {
+    console.error('Error seeding admin:', err);
+  }
+};
 
 // --- Authentication Middleware ---
 const authenticateToken = (req, res, next) => {
@@ -96,29 +446,41 @@ const requireAdmin = (req, res, next) => {
 
 // Signup
 app.post('/api/auth/signup', async (req, res) => {
-  const { name, email, password, favoriteGenres, isAdmin } = req.body;
+  const { name, email, password, favoriteGenres } = req.body;
   if (!name || !email || !password) {
     return res.status(400).json({ message: 'Name, email and password are required' });
   }
 
+  const trimmedName = name.trim();
+  const trimmedEmail = email.trim().toLowerCase();
+
+  // Backend Field Validation
+  if (trimmedName.length === 0) {
+    return res.status(400).json({ message: 'Name cannot be empty' });
+  }
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(trimmedEmail)) {
+    return res.status(400).json({ message: 'Invalid email format' });
+  }
+  if (password.length < 8) {
+    return res.status(400).json({ message: 'Password must be at least 8 characters long' });
+  }
+
   try {
-    const users = readDB(USERS_FILE);
-    const lowerEmail = email.toLowerCase();
-    
-    if (users.some(u => u.email === lowerEmail)) {
+    const existingUser = await db.findUserByEmail(trimmedEmail);
+    if (existingUser) {
       return res.status(400).json({ message: 'An account with this email already exists' });
     }
 
     const salt = await bcrypt.genSalt(10);
     const passwordHash = await bcrypt.hash(password, salt);
 
-    // Admin access is restricted to the specific admin email
-    const userIsAdmin = lowerEmail === 'rahmanridwanidowu@gmail.com';
+    const userIsAdmin = trimmedEmail === 'rahmanridwanidowu@gmail.com';
 
     const newUser = {
       id: Date.now().toString(),
-      name,
-      email: lowerEmail,
+      name: trimmedName,
+      email: trimmedEmail,
       passwordHash,
       favoriteGenres: favoriteGenres || [],
       readingList: [],
@@ -127,15 +489,22 @@ app.post('/api/auth/signup', async (req, res) => {
       joinedDate: new Date().toISOString().split('T')[0],
       theme: 'dark',
       isAdmin: userIsAdmin,
-      premium: userIsAdmin, // Admins get premium by default
+      premium: userIsAdmin,
       planId: userIsAdmin ? 'premium' : 'free'
     };
 
-    users.push(newUser);
-    writeDB(USERS_FILE, users);
-
-    const { passwordHash: _, ...userSession } = newUser;
+    const created = await db.createUser(newUser);
+    const { passwordHash: _, ...userSession } = created;
     const token = jwt.sign(userSession, JWT_SECRET, { expiresIn: '7d' });
+
+    // Log telemetry
+    await db.logTelemetry({
+      userId: created.id,
+      userEmail: created.email,
+      eventType: 'registration',
+      metadata: { name: created.name },
+      timestamp: new Date()
+    });
 
     res.status(201).json({ token, user: userSession });
   } catch (err) {
@@ -151,11 +520,16 @@ app.post('/api/auth/login', async (req, res) => {
     return res.status(400).json({ message: 'Email and password are required' });
   }
 
-  try {
-    const users = readDB(USERS_FILE);
-    const lowerEmail = email.toLowerCase();
-    const user = users.find(u => u.email === lowerEmail);
+  const trimmedEmail = email.trim().toLowerCase();
 
+  // Backend Field Validation
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(trimmedEmail)) {
+    return res.status(400).json({ message: 'Invalid email format' });
+  }
+
+  try {
+    const user = await db.findUserByEmail(trimmedEmail);
     if (!user) {
       return res.status(400).json({ message: 'Invalid email or password' });
     }
@@ -168,6 +542,15 @@ app.post('/api/auth/login', async (req, res) => {
     const { passwordHash: _, ...userSession } = user;
     const token = jwt.sign(userSession, JWT_SECRET, { expiresIn: '7d' });
 
+    // Log telemetry
+    await db.logTelemetry({
+      userId: user.id,
+      userEmail: user.email,
+      eventType: 'login',
+      metadata: { name: user.name },
+      timestamp: new Date()
+    });
+
     res.json({ token, user: userSession });
   } catch (err) {
     console.error(err);
@@ -176,177 +559,229 @@ app.post('/api/auth/login', async (req, res) => {
 });
 
 // Get Current User Profile details
-app.get('/api/auth/me', authenticateToken, (req, res) => {
-  const users = readDB(USERS_FILE);
-  const user = users.find(u => u.id === req.user.id);
-  if (!user) return res.status(404).json({ message: 'User not found' });
+app.get('/api/auth/me', authenticateToken, async (req, res) => {
+  try {
+    const user = await db.findUserById(req.user.id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
 
-  const { passwordHash: _, ...userSession } = user;
-  res.json(userSession);
+    const { passwordHash: _, ...userSession } = user;
+    res.json(userSession);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error' });
+  }
 });
 
 // Update Profile General Details
-app.put('/api/auth/profile', authenticateToken, (req, res) => {
+app.put('/api/auth/profile', authenticateToken, async (req, res) => {
   const updates = req.body;
-  const users = readDB(USERS_FILE);
-  const userIndex = users.findIndex(u => u.id === req.user.id);
+  try {
+    const user = await db.findUserById(req.user.id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
 
-  if (userIndex === -1) return res.status(404).json({ message: 'User not found' });
-
-  // Update allowed keys only (excluding sensitive password/email)
-  const allowedKeys = ['name', 'favoriteGenres', 'theme', 'premium', 'planId', 'isAdmin'];
-  allowedKeys.forEach(key => {
-    if (updates[key] !== undefined) {
-      // If promoting to admin, automatically make them premium too
-      if (key === 'isAdmin' && updates[key] === true) {
-        users[userIndex]['premium'] = true;
-        users[userIndex]['planId'] = 'premium';
-      }
-      users[userIndex][key] = updates[key];
+    if (updates.isAdmin === true) {
+      updates.premium = true;
+      updates.planId = 'premium';
     }
-  });
 
-  writeDB(USERS_FILE, users);
+    // Detect plan changes and record revenue
+    if (updates.planId && updates.planId !== user.planId) {
+      let price = 0;
+      if (updates.planId === 'standard') price = 1.00;
+      else if (updates.planId === 'premium') price = 2.00;
 
-  const { passwordHash: _, ...userSession } = users[userIndex];
-  res.json(userSession);
+      if (price > 0) {
+        const settings = await db.getSystemSettings();
+        const nextBalance = parseFloat((settings.balance + price).toFixed(2));
+        await db.updateSystemSettings({ balance: nextBalance });
+
+        // Record payment transaction
+        const txId = 'tx-p-' + Date.now();
+        await db.createTransaction({
+          id: txId,
+          userId: user.id,
+          userEmail: user.email,
+          type: 'payment',
+          amount: price,
+          planId: updates.planId,
+          timestamp: new Date()
+        });
+
+        // Log telemetry
+        await db.logTelemetry({
+          userId: user.id,
+          userEmail: user.email,
+          eventType: 'subscribe',
+          metadata: { planId: updates.planId, amount: price },
+          timestamp: new Date()
+        });
+      }
+    }
+
+    const updated = await db.updateUser(req.user.id, updates);
+    const { passwordHash: _, ...userSession } = updated;
+    res.json(userSession);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error updating profile' });
+  }
 });
 
 // Toggle Save Book (Library bookmarking)
-app.post('/api/auth/toggle-save', authenticateToken, (req, res) => {
+app.post('/api/auth/toggle-save', authenticateToken, async (req, res) => {
   const { bookId } = req.body;
   if (!bookId) return res.status(400).json({ message: 'Book ID is required' });
 
   const numericId = parseInt(bookId);
-  const users = readDB(USERS_FILE);
-  const userIndex = users.findIndex(u => u.id === req.user.id);
+  try {
+    const user = await db.findUserById(req.user.id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
 
-  if (userIndex === -1) return res.status(404).json({ message: 'User not found' });
+    let readingList = user.readingList || [];
+    const isSaved = readingList.includes(numericId);
 
-  let readingList = users[userIndex].readingList || [];
-  const isSaved = readingList.includes(numericId);
+    if (isSaved) {
+      readingList = readingList.filter(id => id !== numericId);
+    } else {
+      readingList.push(numericId);
+    }
 
-  if (isSaved) {
-    readingList = readingList.filter(id => id !== numericId);
-  } else {
-    readingList.push(numericId);
+    const updated = await db.updateUser(req.user.id, { readingList });
+    const { passwordHash: _, ...userSession } = updated;
+    res.json({ saved: !isSaved, user: userSession });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error' });
   }
-
-  users[userIndex].readingList = readingList;
-  writeDB(USERS_FILE, users);
-
-  const { passwordHash: _, ...userSession } = users[userIndex];
-  res.json({ saved: !isSaved, user: userSession });
 });
 
 // Update Reading Progress
-app.post('/api/auth/progress', authenticateToken, (req, res) => {
+app.post('/api/auth/progress', authenticateToken, async (req, res) => {
   const { bookId, chapter, progress } = req.body;
   if (!bookId || chapter === undefined || progress === undefined) {
     return res.status(400).json({ message: 'Book ID, chapter, and progress values are required' });
   }
 
   const numericId = parseInt(bookId);
-  const users = readDB(USERS_FILE);
-  const userIndex = users.findIndex(u => u.id === req.user.id);
+  try {
+    const user = await db.findUserById(req.user.id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
 
-  if (userIndex === -1) return res.status(404).json({ message: 'User not found' });
+    const readHistory = user.readHistory || {};
+    const newHistory = { ...readHistory };
+    newHistory[numericId] = {
+      chapter: parseInt(chapter),
+      progress: parseInt(progress),
+      updatedAt: new Date().toISOString()
+    };
 
-  const readHistory = users[userIndex].readHistory || {};
-  readHistory[numericId] = {
-    chapter: parseInt(chapter),
-    progress: parseInt(progress),
-    updatedAt: new Date().toISOString()
-  };
+    const updated = await db.updateUser(req.user.id, { readHistory: newHistory });
+    const { passwordHash: _, ...userSession } = updated;
 
-  users[userIndex].readHistory = readHistory;
-  writeDB(USERS_FILE, users);
+    // Get book title for logging
+    const books = await db.getBooks();
+    const bookObj = books.find(b => b.id === numericId);
+    const bookTitle = bookObj ? bookObj.title : `Book #${numericId}`;
 
-  const { passwordHash: _, ...userSession } = users[userIndex];
-  res.json(userSession);
+    // Log telemetry
+    await db.logTelemetry({
+      userId: user.id,
+      userEmail: user.email,
+      eventType: 'book_read',
+      metadata: { bookId: numericId, bookTitle, chapter: parseInt(chapter), progress: parseInt(progress) },
+      timestamp: new Date()
+    });
+
+    res.json(userSession);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error' });
+  }
 });
 
 // Update Book Rating
-app.post('/api/auth/rate', authenticateToken, (req, res) => {
+app.post('/api/auth/rate', authenticateToken, async (req, res) => {
   const { bookId, rating } = req.body;
   if (!bookId || rating === undefined) {
     return res.status(400).json({ message: 'Book ID and rating value are required' });
   }
 
   const numericId = parseInt(bookId);
-  const users = readDB(USERS_FILE);
-  const userIndex = users.findIndex(u => u.id === req.user.id);
+  try {
+    const user = await db.findUserById(req.user.id);
+    if (!user) return res.status(404).json({ message: 'User not found' });
 
-  if (userIndex === -1) return res.status(404).json({ message: 'User not found' });
+    const ratings = user.ratings || {};
+    const newRatings = { ...ratings };
+    newRatings[numericId] = parseInt(rating);
 
-  const ratings = users[userIndex].ratings || {};
-  ratings[numericId] = parseInt(rating);
-
-  users[userIndex].ratings = ratings;
-  writeDB(USERS_FILE, users);
-
-  const { passwordHash: _, ...userSession } = users[userIndex];
-  res.json(userSession);
+    const updated = await db.updateUser(req.user.id, { ratings: newRatings });
+    const { passwordHash: _, ...userSession } = updated;
+    res.json(userSession);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error' });
+  }
 });
 
 // List All Users (Admin only)
-app.get('/api/auth/users', authenticateToken, requireAdmin, (req, res) => {
-  const users = readDB(USERS_FILE);
-  const sanitized = users.map(({ passwordHash: _, ...user }) => user);
-  res.json(sanitized);
+app.get('/api/auth/users', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const users = await db.getUsers();
+    const sanitized = users.map(({ passwordHash: _, ...user }) => user);
+    res.json(sanitized);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error' });
+  }
 });
 
 // Toggle Admin Role Status (Admin only)
-app.put('/api/auth/users/:id/admin', authenticateToken, requireAdmin, (req, res) => {
+app.put('/api/auth/users/:id/admin', authenticateToken, requireAdmin, async (req, res) => {
   const targetId = req.params.id;
-  const users = readDB(USERS_FILE);
-  const targetIndex = users.findIndex(u => u.id === targetId);
+  try {
+    const users = await db.getUsers();
+    const target = users.find(u => u.id === targetId);
 
-  if (targetIndex === -1) return res.status(404).json({ message: 'User not found' });
+    if (!target) return res.status(404).json({ message: 'User not found' });
 
-  // Self role protection
-  if (targetId === req.user.id) {
-    return res.status(400).json({ message: 'Cannot demote yourself from Admin role' });
+    if (targetId === req.user.id) {
+      return res.status(400).json({ message: 'Cannot demote yourself from Admin role' });
+    }
+
+    const nextIsAdmin = !target.isAdmin;
+    const updated = await db.updateUser(targetId, { isAdmin: nextIsAdmin });
+
+    res.json({ message: 'Role status updated successfully', user: updated });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error' });
   }
-
-  users[targetIndex].isAdmin = !users[targetIndex].isAdmin;
-  writeDB(USERS_FILE, users);
-
-  res.json({ message: 'Role status updated successfully', user: users[targetIndex] });
 });
 
 // --- BOOKS ENDPOINTS ---
 
 // Get All Books metadata
-app.get('/api/books', (req, res) => {
-  const books = readDB(BOOKS_FILE);
-  res.json(books);
+app.get('/api/books', async (req, res) => {
+  try {
+    const books = await db.getBooks();
+    res.json(books);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error fetching books' });
+  }
 });
 
 // Upload New Book (Admin or Creator)
-app.post('/api/books', authenticateToken, requireAdmin, (req, res) => {
+app.post('/api/books', authenticateToken, requireAdmin, async (req, res) => {
   const { metadata, content } = req.body;
   if (!metadata || !content) {
     return res.status(400).json({ message: 'Metadata and content payloads are required' });
   }
 
   try {
-    const books = readDB(BOOKS_FILE);
-    const contents = readDB(CONTENTS_FILE);
-
-    // Overwrite metadata if ID matches, else append
-    const filteredMetadata = books.filter(b => b.id !== metadata.id);
-    filteredMetadata.push(metadata);
-    writeDB(BOOKS_FILE, filteredMetadata);
-
-    // Save content
-    contents[metadata.id] = {
-      bookId: metadata.id,
-      ...content
-    };
-    writeDB(CONTENTS_FILE, contents);
-
-    res.status(201).json(metadata);
+    const saved = await db.saveBook(metadata, content);
+    res.status(201).json(saved);
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Server error saving book' });
@@ -354,22 +789,12 @@ app.post('/api/books', authenticateToken, requireAdmin, (req, res) => {
 });
 
 // Delete Book (Admin or Creator)
-app.delete('/api/books/:id', authenticateToken, requireAdmin, (req, res) => {
+app.delete('/api/books/:id', authenticateToken, requireAdmin, async (req, res) => {
   const bookId = parseInt(req.params.id);
   if (!bookId) return res.status(400).json({ message: 'Invalid Book ID' });
 
   try {
-    const books = readDB(BOOKS_FILE);
-    const contents = readDB(CONTENTS_FILE);
-
-    const filteredMetadata = books.filter(b => b.id !== bookId);
-    writeDB(BOOKS_FILE, filteredMetadata);
-
-    if (contents[bookId]) {
-      delete contents[bookId];
-      writeDB(CONTENTS_FILE, contents);
-    }
-
+    await db.deleteBook(bookId);
     res.json({ message: 'Book deleted successfully' });
   } catch (err) {
     console.error(err);
@@ -378,16 +803,167 @@ app.delete('/api/books/:id', authenticateToken, requireAdmin, (req, res) => {
 });
 
 // Get Book Content (Chapters / Panels)
-app.get('/api/books/:id/content', authenticateToken, (req, res) => {
+app.get('/api/books/:id/content', authenticateToken, async (req, res) => {
   const bookId = parseInt(req.params.id);
-  const contents = readDB(CONTENTS_FILE);
-  const content = contents[bookId];
+  try {
+    const content = await db.getBookContent(bookId);
+    if (!content) {
+      return res.status(404).json({ message: 'Book content not found' });
+    }
+    res.json(content);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
 
-  if (!content) {
-    return res.status(404).json({ message: 'Book content not found' });
+// --- TELEMETRY & WITHDRAWAL API ENDPOINTS ---
+
+// Log event (public event tracker)
+app.post('/api/telemetry/event', async (req, res) => {
+  const { eventType, metadata } = req.body;
+  if (!eventType) return res.status(400).json({ message: 'Event type required' });
+
+  // Try to decode user if auth header exists (non-blocking)
+  let userId = null;
+  let userEmail = null;
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+  if (token) {
+    try {
+      const decoded = jwt.verify(token, JWT_SECRET);
+      userId = decoded.id;
+      userEmail = decoded.email;
+    } catch (e) {
+      // Ignore token decode errors for anonymous telemetry
+    }
   }
 
-  res.json(content);
+  try {
+    const log = await db.logTelemetry({
+      userId,
+      userEmail,
+      eventType,
+      metadata: metadata || {},
+      timestamp: new Date()
+    });
+    res.status(201).json(log);
+  } catch (err) {
+    console.error('Error logging telemetry event:', err);
+    res.status(500).json({ message: 'Failed to log event' });
+  }
+});
+
+// Get Activity Logs (Admin only)
+app.get('/api/admin/telemetry', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const logs = await db.getTelemetry();
+    res.json(logs);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Get Transactions List (Admin only)
+app.get('/api/admin/transactions', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const txs = await db.getTransactions();
+    res.json(txs);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Get System Settings/Balance (Admin only)
+app.get('/api/admin/settings', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const settings = await db.getSystemSettings();
+    res.json(settings);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Link Bank Account (Admin only)
+app.post('/api/admin/settings/bank', authenticateToken, requireAdmin, async (req, res) => {
+  const { bankName, accountNumber, routingNumber, holderName } = req.body;
+  if (!bankName || !accountNumber || !routingNumber || !holderName) {
+    return res.status(400).json({ message: 'All bank details are required' });
+  }
+
+  try {
+    const updated = await db.updateSystemSettings({
+      bankDetails: { bankName, accountNumber, routingNumber, holderName }
+    });
+    // Log telemetry
+    await db.logTelemetry({
+      userId: req.user.id,
+      userEmail: req.user.email,
+      eventType: 'bank_link',
+      metadata: { bankName, holderName },
+      timestamp: new Date()
+    });
+    res.json(updated);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// Withdraw Funds (Admin only)
+app.post('/api/admin/settings/withdraw', authenticateToken, requireAdmin, async (req, res) => {
+  const { amount } = req.body;
+  const withdrawAmount = parseFloat(amount);
+  if (isNaN(withdrawAmount) || withdrawAmount <= 0) {
+    return res.status(400).json({ message: 'Invalid withdrawal amount' });
+  }
+
+  try {
+    const settings = await db.getSystemSettings();
+    if (!settings.bankDetails || !settings.bankDetails.accountNumber) {
+      return res.status(400).json({ message: 'No bank account linked for withdrawals' });
+    }
+
+    if (settings.balance < withdrawAmount) {
+      return res.status(400).json({ message: 'Insufficient balance' });
+    }
+
+    const nextBalance = parseFloat((settings.balance - withdrawAmount).toFixed(2));
+    await db.updateSystemSettings({ balance: nextBalance });
+
+    // Record withdrawal transaction
+    const txId = 'tx-w-' + Date.now();
+    await db.createTransaction({
+      id: txId,
+      userId: req.user.id,
+      userEmail: req.user.email,
+      type: 'withdrawal',
+      amount: withdrawAmount,
+      bankDetails: {
+        bankName: settings.bankDetails.bankName,
+        accountNumber: '••••' + settings.bankDetails.accountNumber.slice(-4),
+        holderName: settings.bankDetails.holderName
+      },
+      timestamp: new Date()
+    });
+
+    // Log telemetry
+    await db.logTelemetry({
+      userId: req.user.id,
+      userEmail: req.user.email,
+      eventType: 'withdrawal',
+      metadata: { amount: withdrawAmount, bankName: settings.bankDetails.bankName },
+      timestamp: new Date()
+    });
+
+    res.json({ message: 'Withdrawal processed successfully', balance: nextBalance });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error' });
+  }
 });
 
 // Serve static files from the React app build if dist exists

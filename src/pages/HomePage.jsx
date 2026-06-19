@@ -5,12 +5,14 @@ import { FiClock, FiBookOpen, FiLayers, FiAward, FiStar, FiCompass, FiGrid } fro
 import HeroBanner from '../components/HeroBanner';
 import ContentRow from '../components/ContentRow';
 import { useBook } from '../context/BookContext';
+import { useAuth } from '../context/AuthContext';
 import { 
   getPersonalizedRecommendations, 
   getBecauseYouLike 
 } from '../data/recommendations';
 
 export default function HomePage() {
+  const { user } = useAuth();
   const {
     catalog: books,
     getTrendingBooks,
@@ -18,6 +20,34 @@ export default function HomePage() {
     getTopManga,
     getTopRated
   } = useBook();
+
+  if (!user) {
+    return (
+      <div className="landing-container">
+        <div className="landing-overlay" />
+        <motion.div 
+          className="landing-content"
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+        >
+          <h1 className="landing-title">Book<span>Flix</span></h1>
+          <p className="landing-desc">
+            Stream unlimited novels, manga, manhwa, research papers, and textbooks. 
+            Anytime, anywhere, on any device.
+          </p>
+          <div className="landing-buttons">
+            <Link to="/login" className="btn btn-primary btn-lg landing-btn">
+              Log In
+            </Link>
+            <Link to="/signup" className="btn btn-outline btn-lg landing-btn">
+              Create Account
+            </Link>
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
 
   const personalRecs = getPersonalizedRecommendations();
   const fantasyRecs = getBecauseYouLike('Fantasy');

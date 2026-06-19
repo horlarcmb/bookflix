@@ -180,51 +180,6 @@ export function AuthProvider({ children }) {
     return data.user;
   };
 
-  const loginWithSocial = async (name, email) => {
-    const signupData = {
-      name,
-      email,
-      password: 'SocialAuthAccountPassword123!',
-      favoriteGenres: []
-    };
-    
-    try {
-      const res = await fetch('/api/auth/signup', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(signupData)
-      });
-      const data = await res.json();
-      
-      if (res.ok) {
-        localStorage.setItem('bookflix_token', data.token);
-        localStorage.setItem('bookflix_currentUser', JSON.stringify(data.user));
-        setUser(data.user);
-        return data.user;
-      } else if (data.message && data.message.includes('exists')) {
-        const loginRes = await fetch('/api/auth/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, password: 'SocialAuthAccountPassword123!' })
-        });
-        const loginData = await loginRes.json();
-        if (loginRes.ok) {
-          localStorage.setItem('bookflix_token', loginData.token);
-          localStorage.setItem('bookflix_currentUser', JSON.stringify(loginData.user));
-          setUser(loginData.user);
-          return loginData.user;
-        } else {
-          throw new Error(loginData.message || 'Social login failed.');
-        }
-      } else {
-        throw new Error(data.message || 'Social login failed.');
-      }
-    } catch (err) {
-      console.error(err);
-      throw err;
-    }
-  };
-
   const value = {
     user,
     loading,
@@ -236,8 +191,7 @@ export function AuthProvider({ children }) {
     updateBookProgress,
     setBookRating,
     getAllUsers,
-    toggleUserAdminStatus,
-    loginWithSocial
+    toggleUserAdminStatus
   };
 
   return (

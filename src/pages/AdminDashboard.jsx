@@ -16,20 +16,139 @@ export default function AdminDashboard() {
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
 
-  // Fetch users when the section changes to "users"
-  useEffect(() => {
-    if (activeSection === 'users') {
-      const loadUsers = async () => {
-        try {
-          const list = await getAllUsers();
-          setUsersList(list);
-        } catch (err) {
-          console.error('Failed to fetch users in Admin panel', err);
+  // Analytics & Payout States
+  const [balance, setBalance] = useState(0.00);
+  const [bankDetails, setBankDetails] = useState(null);
+  const [transactions, setTransactions] = useState([]);
+  const [telemetryLogs, setTelemetryLogs] = useState([]);
+  
+  // Bank setup inputs
+  const [bankName, setBankName] = useState('');
+  const [accountNumber, setAccountNumber] = useState('');
+  const [routingNumber, setRoutingNumber] = useState('');
+  const [holderName, setHolderName] = useState('');
+  const [isLinking, setIsLinking] = useState(false);
+  
+  // Withdrawal inputs
+  const [withdrawAmount, setWithdrawAmount] = useState('');
+  const [isWithdrawing, setIsWithdrawing] = useState(false);
+  const [withdrawError, setWithdrawError] = useState('');
+  const [withdrawSuccess, setWithdrawSuccess] = useState('');
+
+  const getAuthHeaders = () => {
+    const token = localStorage.getItem('bookflix_token');
+    return {
+      'Content-Type': 'application/json',
+      'Authorization': token ? `Bearer ${token}` : ''
+    };
+  };
+
+  const loadAnalyticsData = async () => {
+    try {
+      const headers = getAuthHeaders();
+      const settingsRes = await fetch('/api/admin/settings', { headers });
+      if (settingsRes.ok) {
+        const settings = await settingsRes.json();
+        setBalance(settings.balance || 0);
+        setBankDetails(settings.bankDetails || null);
+        if (settings.bankDetails) {
+          setBankName(settings.bankDetails.bankName || '');
+          setAccountNumber(settings.bankDetails.accountNumber || '');
+          setRoutingNumber(settings.bankDetails.routingNumber || '');
+          setHolderName(settings.bankDetails.holderName || '');
         }
-      };
-      loadUsers();
+      }
+      
+      const txRes = await fetch('/api/admin/transactions', { headers });
+      if (txRes.ok) {
+        const txs = await txRes.json();
+        setTransactions(txs);
+      }
+      
+      const telRes = await fetch('/api/admin/telemetry', { headers });
+      if (telRes.ok) {
+        const logs = await telRes.json();
+        setTelemetryLogs(logs);
+      }
+    } catch (err) {
+      console.error('Error fetching analytics dashboard data:', err);
     }
-  }, [activeSection]);
+  };
+
+  // Fetch users and analytics data on component mount
+  useEffect(() => {
+    const loadUsers = async () => {
+      try {
+        const list = await getAllUsers();
+        setUsersList(list);
+      } catch (err) {
+        console.error('Failed to fetch users in Admin panel', err);
+      }
+    };
+    loadUsers();
+    loadAnalyticsData();
+
+    // Set up real-time polling every 5 seconds
+    const interval = setInterval(() => {
+      loadAnalyticsData();
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [getAllUsers]);
+
+  const handleLinkBank = async (e) => {
+    e.preventDefault();
+    setIsLinking(true);
+    try {
+      const res = await fetch('/api/admin/settings/bank', {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ bankName, accountNumber, routingNumber, holderName })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setBankDetails(data.bankDetails);
+        alert('Bank account linked successfully!');
+      } else {
+        const errData = await res.json();
+        alert(errData.message || 'Failed to link bank account');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Error linking bank account');
+    } finally {
+      setIsLinking(false);
+    }
+  };
+
+  const handleWithdraw = async (e) => {
+    e.preventDefault();
+    setWithdrawError('');
+    setWithdrawSuccess('');
+    setIsWithdrawing(true);
+    try {
+      const res = await fetch('/api/admin/settings/withdraw', {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ amount: withdrawAmount })
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setBalance(data.balance);
+        setWithdrawSuccess(`Successfully withdrew $${parseFloat(withdrawAmount).toFixed(2)} to linked bank account!`);
+        setWithdrawAmount('');
+        loadAnalyticsData();
+      } else {
+        const errData = await res.json();
+        setWithdrawError(errData.message || 'Failed to request withdrawal');
+      }
+    } catch (err) {
+      console.error(err);
+      setWithdrawError('Error requesting withdrawal');
+    } finally {
+      setIsWithdrawing(false);
+    }
+  };
 
   // Form State
   const [title, setTitle] = useState('');
@@ -52,11 +171,15 @@ export default function AdminDashboard() {
     { id: 'revenue', icon: <FiDollarSign />, label: 'Revenue' },
   ];
 
+  const totalUsers = usersList.length;
+  const totalRevenue = transactions.filter(t => t.type === 'payment').reduce((acc, t) => acc + t.amount, 0);
+  const totalBooks = catalog.length;
+
   const stats = [
-    { icon: <FiUsers />, label: 'Total Users', value: '124,892', change: '+12.5%', positive: true, color: 'rgba(79,172,254,0.2)', iconColor: '#4facfe' },
-    { icon: <FiCreditCard />, label: 'Active Subs', value: '89,341', change: '+8.2%', positive: true, color: 'rgba(70,211,105,0.2)', iconColor: '#46d369' },
-    { icon: <FiDollarSign />, label: 'Revenue', value: '$94,523', change: '+15.3%', positive: true, color: 'rgba(255,215,0,0.2)', iconColor: '#FFD700' },
-    { icon: <FiTrendingUp />, label: 'Daily Signups', value: '2,847', change: '+5.1%', positive: true, color: 'rgba(229,9,20,0.2)', iconColor: '#E50914' },
+    { icon: <FiUsers />, label: 'Total Users', value: totalUsers.toString(), change: 'Real-time', positive: true, color: 'rgba(79,172,254,0.2)', iconColor: '#4facfe' },
+    { icon: <FiDollarSign />, label: 'Total Revenue', value: `$${totalRevenue.toFixed(2)}`, change: 'Real-time', positive: true, color: 'rgba(70,211,105,0.2)', iconColor: '#46d369' },
+    { icon: <FiDollarSign />, label: 'Available Balance', value: `$${balance.toFixed(2)}`, change: 'Withdrawable', positive: true, color: 'rgba(255,215,0,0.2)', iconColor: '#FFD700' },
+    { icon: <FiBook />, label: 'Total Books', value: totalBooks.toString(), change: 'Catalog Size', positive: true, color: 'rgba(229,9,20,0.2)', iconColor: '#E50914' },
   ];
 
   const contentFormat = ['Manga', 'Manhwa', 'Webtoon', 'Light Novel'].includes(type) ? 'panels' : 'text';
@@ -226,16 +349,27 @@ export default function AdminDashboard() {
 
   // Mini bar chart SVG
   const BarChart = () => {
-    const data = [45, 52, 49, 63, 58, 71, 65, 78, 72, 85, 82, 90];
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    const maxVal = Math.max(...data);
+    const monthlyRevenueData = Array(12).fill(0);
+    
+    transactions.forEach(t => {
+      if (t.type === 'payment' && t.timestamp) {
+        const dateObj = new Date(t.timestamp);
+        if (!isNaN(dateObj.getTime())) {
+          const monthIndex = dateObj.getMonth();
+          monthlyRevenueData[monthIndex] += t.amount;
+        }
+      }
+    });
+
+    const maxVal = Math.max(...monthlyRevenueData, 10);
     const chartHeight = 250;
     const barWidth = 35;
     const gap = 15;
 
     return (
-      <svg width="100%" height={chartHeight + 40} viewBox={`0 0 ${(barWidth + gap) * data.length} ${chartHeight + 40}`}>
-        {data.map((val, i) => {
+      <svg width="100%" height={chartHeight + 40} viewBox={`0 0 ${(barWidth + gap) * monthlyRevenueData.length} ${chartHeight + 40}`}>
+        {monthlyRevenueData.map((val, i) => {
           const barHeight = (val / maxVal) * chartHeight;
           const x = i * (barWidth + gap);
           const y = chartHeight - barHeight;
@@ -249,7 +383,7 @@ export default function AdminDashboard() {
               </defs>
               <rect x={x} y={y} width={barWidth} height={barHeight} rx={4} fill={`url(#barGrad${i})`} opacity={0.8} />
               <text x={x + barWidth / 2} y={chartHeight + 20} textAnchor="middle" fill="#808080" fontSize="10">{months[i]}</text>
-              <text x={x + barWidth / 2} y={y - 8} textAnchor="middle" fill="#b3b3b3" fontSize="10">${val}k</text>
+              <text x={x + barWidth / 2} y={y - 8} textAnchor="middle" fill="#b3b3b3" fontSize="10">${val.toFixed(2)}</text>
             </g>
           );
         })}
@@ -259,13 +393,32 @@ export default function AdminDashboard() {
 
   // Line chart SVG
   const LineChart = () => {
-    const data = [3200, 3500, 3100, 4200, 3800, 4500, 4100, 5200, 4800, 5600, 5200, 6100];
-    const maxVal = Math.max(...data);
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const monthlySignups = Array(12).fill(0);
+    
+    usersList.forEach(u => {
+      if (u.joinedDate) {
+        const dateObj = new Date(u.joinedDate);
+        if (!isNaN(dateObj.getTime())) {
+          const monthIndex = dateObj.getMonth();
+          monthlySignups[monthIndex] += 1;
+        }
+      }
+    });
+
+    const chartData = [];
+    let cumulative = 0;
+    for (let i = 0; i < 12; i++) {
+      cumulative += monthlySignups[i];
+      chartData.push(cumulative);
+    }
+
+    const maxVal = Math.max(...chartData, 5);
     const chartWidth = 600;
     const chartHeight = 250;
 
-    const points = data.map((val, i) => {
-      const x = (i / (data.length - 1)) * chartWidth;
+    const points = chartData.map((val, i) => {
+      const x = (i / (chartData.length - 1)) * chartWidth;
       const y = chartHeight - (val / maxVal) * chartHeight;
       return `${x},${y}`;
     }).join(' ');
@@ -282,10 +435,15 @@ export default function AdminDashboard() {
         </defs>
         <polygon points={areaPoints} fill="url(#lineGrad)" />
         <polyline points={points} fill="none" stroke="#4facfe" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-        {data.map((val, i) => {
-          const x = (i / (data.length - 1)) * chartWidth;
+        {chartData.map((val, i) => {
+          const x = (i / (chartData.length - 1)) * chartWidth;
           const y = chartHeight - (val / maxVal) * chartHeight;
-          return <circle key={i} cx={x} cy={y} r="4" fill="#4facfe" stroke="#141414" strokeWidth="2" />;
+          return (
+            <g key={i}>
+              <circle cx={x} cy={y} r="4" fill="#4facfe" stroke="#141414" strokeWidth="2" />
+              <text x={x} y={y - 8} textAnchor="middle" fill="#b3b3b3" fontSize="9">{val}</text>
+            </g>
+          );
         })}
       </svg>
     );
@@ -337,7 +495,7 @@ export default function AdminDashboard() {
                 </div>
 
                 {/* Charts */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-xl)', marginBottom: 'var(--space-xl)' }}>
+                <div className="charts-grid">
                   <div className="chart-card">
                     <div className="chart-card-header">
                       <span className="chart-card-title">Monthly Revenue</span>
@@ -349,6 +507,70 @@ export default function AdminDashboard() {
                       <span className="chart-card-title">Daily Active Users</span>
                     </div>
                     <div className="chart-container"><LineChart /></div>
+                  </div>
+                </div>
+
+                {/* Real-time Activity logs */}
+                <div className="admin-table-wrapper" style={{ marginTop: 'var(--space-xl)' }}>
+                  <div style={{ padding: 'var(--space-md)', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <h3 style={{ fontSize: '1.1rem', fontWeight: 600 }}>Live Activity Feed</h3>
+                    <span style={{ fontSize: '0.85rem', color: '#46d369', background: 'rgba(70,211,105,0.1)', padding: '2px 8px', borderRadius: '10px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#46d369', display: 'inline-block' }} /> Live
+                    </span>
+                  </div>
+                  <div style={{ maxHeight: '250px', overflowY: 'auto' }}>
+                    <table className="admin-table">
+                      <thead>
+                        <tr>
+                          <th>Event</th><th>User</th><th>Details</th><th>Time</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {telemetryLogs.length === 0 ? (
+                          <tr>
+                            <td colSpan="4" style={{ textAlign: 'center', color: 'var(--text-tertiary)', padding: '24px' }}>
+                              No activity logged yet.
+                            </td>
+                          </tr>
+                        ) : (
+                          telemetryLogs.map((log) => {
+                            const formattedTime = new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                            return (
+                              <tr key={log._id || log.timestamp}>
+                                <td>
+                                  <span style={{ 
+                                    padding: '2px 8px', 
+                                    borderRadius: '4px', 
+                                    fontSize: '0.75rem', 
+                                    fontWeight: 600, 
+                                    textTransform: 'uppercase',
+                                    background: log.eventType === 'subscribe' ? 'rgba(70,211,105,0.15)' :
+                                                log.eventType === 'registration' ? 'rgba(79,172,254,0.15)' :
+                                                log.eventType === 'withdrawal' ? 'rgba(229,9,20,0.15)' : 'rgba(255,255,255,0.06)',
+                                    color: log.eventType === 'subscribe' ? 'var(--success)' :
+                                           log.eventType === 'registration' ? '#4facfe' :
+                                           log.eventType === 'withdrawal' ? 'var(--error)' : 'var(--text-secondary)'
+                                  }}>
+                                    {log.eventType.replace('_', ' ')}
+                                  </span>
+                                </td>
+                                <td style={{ fontWeight: 500 }}>{log.userEmail || 'Anonymous'}</td>
+                                <td style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
+                                  {log.eventType === 'page_view' && `Visited ${log.metadata.path}`}
+                                  {log.eventType === 'book_read' && `Read ${log.metadata.bookTitle} (Ch. ${log.metadata.chapter}, ${log.metadata.progress}%)`}
+                                  {log.eventType === 'subscribe' && `Subscribed to ${log.metadata.planId} ($${log.metadata.amount})`}
+                                  {log.eventType === 'withdrawal' && `Withdrew $${log.metadata.amount} to ${log.metadata.bankName}`}
+                                  {log.eventType === 'bank_link' && `Linked bank account at ${log.metadata.bankName}`}
+                                  {log.eventType === 'registration' && `Registered new account`}
+                                  {log.eventType === 'login' && `Logged in`}
+                                </td>
+                                <td style={{ color: 'var(--text-tertiary)', fontSize: '0.8rem' }}>{formattedTime}</td>
+                              </tr>
+                            );
+                          })
+                        )}
+                      </tbody>
+                    </table>
                   </div>
                 </div>
               </>
@@ -487,38 +709,171 @@ export default function AdminDashboard() {
 
             {/* Revenue Analytics Section */}
             {activeSection === 'revenue' && (
-              <div className="admin-table-wrapper" style={{ marginTop: 'var(--space-lg)' }}>
-                <div style={{ padding: 'var(--space-md)', borderBottom: '1px solid var(--border)' }}>
-                  <h3 style={{ fontSize: '1rem' }}>Revenue Analytics</h3>
+              <>
+                <div className="admin-table-wrapper" style={{ marginTop: 'var(--space-lg)' }}>
+                  <div style={{ padding: 'var(--space-md)', borderBottom: '1px solid var(--border)' }}>
+                    <h3 style={{ fontSize: '1.1rem', fontWeight: 600 }}>Active Subscriptions</h3>
+                  </div>
+                  <table className="admin-table">
+                    <thead>
+                      <tr>
+                        <th>Plan Name</th><th>Users</th><th>Price</th><th>Accumulated Revenue</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td>Premium Plan</td>
+                        <td>{usersList.filter(u => u.premium && u.planId === 'premium').length}</td>
+                        <td>$2.00</td>
+                        <td>${transactions.filter(t => t.type === 'payment' && t.planId === 'premium').reduce((acc, t) => acc + t.amount, 0).toFixed(2)}</td>
+                      </tr>
+                      <tr>
+                        <td>Standard Plan</td>
+                        <td>{usersList.filter(u => u.premium && u.planId === 'standard').length}</td>
+                        <td>$1.00</td>
+                        <td>${transactions.filter(t => t.type === 'payment' && t.planId === 'standard').reduce((acc, t) => acc + t.amount, 0).toFixed(2)}</td>
+                      </tr>
+                      <tr>
+                        <td>Standard (Free)</td>
+                        <td>{usersList.filter(u => !u.premium).length}</td>
+                        <td>$0.00</td>
+                        <td>$0.00</td>
+                      </tr>
+                    </tbody>
+                  </table>
                 </div>
-                <table className="admin-table">
-                  <thead>
-                    <tr>
-                      <th>Plan</th><th>Active Subscriptions</th><th>Monthly Revenue</th><th>Growth</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr>
-                      <td>Premium Plan (Monthly)</td>
-                      <td>42,391</td>
-                      <td>$254,346</td>
-                      <td style={{ color: 'var(--success)' }}>+12.4%</td>
-                    </tr>
-                    <tr>
-                      <td>Premium Plan (Annual)</td>
-                      <td>46,950</td>
-                      <td>$1,126,800</td>
-                      <td style={{ color: 'var(--success)' }}>+8.9%</td>
-                    </tr>
-                    <tr>
-                      <td>Ad-Supported (Standard)</td>
-                      <td>35,551</td>
-                      <td>$35,551</td>
-                      <td style={{ color: 'var(--warning)' }}>-1.2%</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
+
+                {/* Bank account & withdrawals grid */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginTop: '24px' }} className="charts-grid">
+                  
+                  {/* Linked Bank details */}
+                  <div className="admin-table-wrapper" style={{ padding: '16px' }}>
+                    <h3 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '16px' }}>🏦 Linked Bank Account</h3>
+                    
+                    {bankDetails ? (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', background: 'rgba(255,255,255,0.02)', padding: '16px', borderRadius: '6px', border: '1px solid var(--border)' }}>
+                        <div>
+                          <div style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>Bank Name</div>
+                          <div style={{ fontWeight: 600 }}>{bankDetails.bankName}</div>
+                        </div>
+                        <div>
+                          <div style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>Account Holder</div>
+                          <div style={{ fontWeight: 600 }}>{bankDetails.holderName}</div>
+                        </div>
+                        <div>
+                          <div style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>Account Number</div>
+                          <div style={{ fontWeight: 600 }}>•••• •••• •••• {bankDetails.accountNumber.slice(-4)}</div>
+                        </div>
+                        <div>
+                          <div style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>Routing Number</div>
+                          <div style={{ fontWeight: 600 }}>{bankDetails.routingNumber}</div>
+                        </div>
+                        <button className="btn btn-ghost btn-sm" style={{ alignSelf: 'flex-start', color: 'var(--error)', marginTop: '8px' }} onClick={() => setBankDetails(null)}>
+                          Change Bank Account
+                        </button>
+                      </div>
+                    ) : (
+                      <form onSubmit={handleLinkBank} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                        <div className="form-group">
+                          <label>Bank Name</label>
+                          <input type="text" placeholder="Chase, Wells Fargo, etc." value={bankName} onChange={e => setBankName(e.target.value)} required />
+                        </div>
+                        <div className="form-group">
+                          <label>Account Holder Name</label>
+                          <input type="text" placeholder="Organization / Corporate Name" value={holderName} onChange={e => setHolderName(e.target.value)} required />
+                        </div>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                          <div className="form-group">
+                            <label>Routing Number</label>
+                            <input type="text" placeholder="9 digits" value={routingNumber} onChange={e => setRoutingNumber(e.target.value)} required />
+                          </div>
+                          <div className="form-group">
+                            <label>Account Number</label>
+                            <input type="text" placeholder="Account number" value={accountNumber} onChange={e => setAccountNumber(e.target.value)} required />
+                          </div>
+                        </div>
+                        <button className="btn btn-primary" type="submit" disabled={isLinking}>
+                          {isLinking ? 'Linking Account...' : 'Link Corporate Bank'}
+                        </button>
+                      </form>
+                    )}
+                  </div>
+
+                  {/* Available Withdrawals */}
+                  <div className="admin-table-wrapper" style={{ padding: '16px' }}>
+                    <h3 style={{ fontSize: '1.1rem', fontWeight: 600, marginBottom: '16px' }}>💸 Available Payouts</h3>
+                    
+                    <div style={{ padding: '16px', background: 'rgba(70,211,105,0.06)', border: '1px solid rgba(70,211,105,0.2)', borderRadius: '6px', marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <div>
+                        <div style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>Withdrawable Balance</div>
+                        <div style={{ fontSize: '1.8rem', fontWeight: 700, color: 'var(--success)' }}>${balance.toFixed(2)}</div>
+                      </div>
+                      <div style={{ fontSize: '2.5rem' }}>💵</div>
+                    </div>
+
+                    {withdrawError && <div style={{ color: 'var(--error)', fontSize: '0.85rem', marginBottom: '8px' }}>{withdrawError}</div>}
+                    {withdrawSuccess && <div style={{ color: 'var(--success)', fontSize: '0.85rem', marginBottom: '8px' }}>{withdrawSuccess}</div>}
+
+                    <form onSubmit={handleWithdraw} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                      <div className="form-group">
+                        <label>Withdrawal Amount ($)</label>
+                        <input type="number" step="0.01" min="0.01" max={balance} placeholder="0.00" value={withdrawAmount} onChange={e => setWithdrawAmount(e.target.value)} required disabled={!bankDetails || balance <= 0} />
+                      </div>
+                      <button className="btn btn-primary" type="submit" disabled={!bankDetails || balance <= 0 || isWithdrawing} style={{ background: 'linear-gradient(135deg, #46d369 0%, #38f9d7 100%)', color: '#000', border: 'none', fontWeight: 700 }}>
+                        {!bankDetails ? 'Link Bank Account First' : balance <= 0 ? 'No Funds Available' : isWithdrawing ? 'Processing Withdrawal...' : 'Request Payout'}
+                      </button>
+                    </form>
+                  </div>
+
+                </div>
+
+                {/* Transactions Ledger */}
+                <div className="admin-table-wrapper" style={{ marginTop: '24px' }}>
+                  <div style={{ padding: 'var(--space-md)', borderBottom: '1px solid var(--border)' }}>
+                    <h3 style={{ fontSize: '1.1rem', fontWeight: 600 }}>Transactions Ledger</h3>
+                  </div>
+                  <table className="admin-table">
+                    <thead>
+                      <tr>
+                        <th>TX ID</th><th>User</th><th>Type</th><th>Plan ID</th><th>Amount</th><th>Timestamp</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {transactions.length === 0 ? (
+                        <tr>
+                          <td colSpan="6" style={{ textAlign: 'center', color: 'var(--text-tertiary)', padding: '24px' }}>
+                            No transactions recorded yet.
+                          </td>
+                        </tr>
+                      ) : (
+                        transactions.map((tx) => (
+                          <tr key={tx.id}>
+                            <td style={{ fontFamily: 'monospace', fontSize: '0.8rem' }}>{tx.id}</td>
+                            <td style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>{tx.userEmail}</td>
+                            <td>
+                              <span style={{ 
+                                padding: '2px 6px', 
+                                borderRadius: '4px', 
+                                fontSize: '0.75rem', 
+                                fontWeight: 600,
+                                background: tx.type === 'payment' ? 'rgba(70,211,105,0.15)' : 'rgba(79,172,254,0.15)',
+                                color: tx.type === 'payment' ? 'var(--success)' : '#4facfe'
+                              }}>
+                                {tx.type.toUpperCase()}
+                              </span>
+                            </td>
+                            <td>{tx.planId || 'N/A'}</td>
+                            <td style={{ fontWeight: 600, color: tx.type === 'payment' ? 'var(--success)' : 'var(--error)' }}>
+                              {tx.type === 'payment' ? '+' : '-'}${tx.amount.toFixed(2)}
+                            </td>
+                            <td style={{ color: 'var(--text-tertiary)', fontSize: '0.85rem' }}>{new Date(tx.timestamp).toLocaleString()}</td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </>
             )}
 
           </motion.div>

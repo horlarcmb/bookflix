@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 
@@ -51,12 +51,37 @@ function AdminRoute({ children }) {
 function AppLayout() {
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const location = useLocation();
+  const { user } = useAuth();
 
-  // Hide navbar/footer on reader and authentication pages
+  // Hide navbar/footer on reader, authentication pages, and landing page (if unauthenticated)
   const hideChrome = location.pathname.startsWith('/read') ||
     location.pathname === '/login' ||
     location.pathname === '/signup' ||
-    location.pathname === '/forgot-password';
+    location.pathname === '/forgot-password' ||
+    (!user && location.pathname === '/');
+
+  // Track page views in real-time
+  useEffect(() => {
+    const trackPageView = async () => {
+      const token = localStorage.getItem('bookflix_token');
+      const headers = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
+      try {
+        await fetch('/api/telemetry/event', {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            eventType: 'page_view',
+            metadata: { path: location.pathname }
+          })
+        });
+      } catch (err) {
+        console.error('Failed to log page view telemetry:', err);
+      }
+    };
+    trackPageView();
+  }, [location.pathname, user]);
 
   return (
     <>
@@ -76,8 +101,16 @@ function AppLayout() {
         <Routes location={location} key={location.pathname}>
           {/* Public Routes */}
           <Route path="/" element={<HomePage />} />
-          <Route path="/browse" element={<BrowsePage />} />
-          <Route path="/book/:id" element={<BookDetailPage />} />
+          <Route path="/browse" element={
+            <ProtectedRoute>
+              <BrowsePage />
+            </ProtectedRoute>
+          } />
+          <Route path="/book/:id" element={
+            <ProtectedRoute>
+              <BookDetailPage />
+            </ProtectedRoute>
+          } />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/signup" element={<SignupPage />} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
