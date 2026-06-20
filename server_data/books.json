@@ -1,1 +1,613 @@
-[]
+[
+  {
+    "id": 1342,
+    "title": "Pride and Prejudice",
+    "author": "Jane Austen",
+    "cover": "https://covers.openlibrary.org/b/id/14348537-L.jpg",
+    "gradient": null,
+    "genre": [
+      "Romance",
+      "Fiction",
+      "Historical"
+    ],
+    "type": "Novel",
+    "contentFormat": "epub",
+    "rating": 4.5,
+    "synopsis": "Pride and Prejudice is an 1813 novel of manners written by Jane Austen. The novel follows the character development of Elizabeth Bennet, the dynamic protagonist of the book who learns about the repercussions of hasty judgments and comes to appreciate the difference between superficial goodness and actual goodness.\r\n\r\nMr. Bennet, owner of the Longbourn estate in Hertfordshire, has five daughters, but his property is entailed and can only be passed to a male heir. His wife also lacks an inheritance, so his family faces becoming very poor upon his death. Thus, it is imperative that at least one of the girls marry well to support the others, which is a motivation that drives the plot.",
+    "chapters": 15,
+    "status": "Completed",
+    "language": "English",
+    "tags": [
+      "Classic",
+      "Literature",
+      "Public Domain"
+    ],
+    "readCount": 416128,
+    "premium": true,
+    "featured": true,
+    "isAIGenerated": false,
+    "dateAdded": "2026-06-20",
+    "pages": 280,
+    "publisher": "Public Domain Classics"
+  },
+  {
+    "id": 84,
+    "title": "Frankenstein",
+    "author": "Mary Wollstonecraft Shelley",
+    "cover": "https://covers.openlibrary.org/b/id/12356249-L.jpg",
+    "gradient": null,
+    "genre": [
+      "Horror",
+      "Sci-Fi",
+      "Fiction"
+    ],
+    "type": "Novel",
+    "contentFormat": "epub",
+    "rating": 4.5,
+    "synopsis": "*Frankenstein; or, The Modern Prometheus* is an 1818 novel written by English author Mary Shelley. Frankenstein tells the story of Victor Frankenstein, a young scientist who creates a sapient creature in an unorthodox scientific experiment. Shelley started writing the story when she was 18, and the first edition was published anonymously in London on 1 January 1818, when she was 20. Her name first appeared in the second edition, which was published in Paris in 1821.",
+    "chapters": 30,
+    "status": "Completed",
+    "language": "English",
+    "tags": [
+      "Classic",
+      "Literature",
+      "Public Domain"
+    ],
+    "readCount": 475424,
+    "premium": false,
+    "featured": true,
+    "isAIGenerated": false,
+    "dateAdded": "2026-06-20",
+    "pages": 280,
+    "publisher": "Public Domain Classics"
+  },
+  {
+    "id": 11,
+    "title": "Alice's Adventures in Wonderland",
+    "author": "Lewis Carroll",
+    "cover": "https://covers.openlibrary.org/b/id/10527843-L.jpg",
+    "gradient": null,
+    "genre": [
+      "Fantasy",
+      "Adventure",
+      "Fiction"
+    ],
+    "type": "Novel",
+    "contentFormat": "epub",
+    "rating": 4.5,
+    "synopsis": "Alice's Adventures in Wonderland (commonly Alice in Wonderland) is an 1865 English children's novel by Lewis Carroll. A young girl named Alice falls through a rabbit hole into a fantasy world of anthropomorphic creatures. It is seen as an example of the literary nonsense genre.\r\n\r\nOne of the best-known works of Victorian literature, its narrative, structure, characters and imagery have had huge influence on popular culture and literature, especially in the fantasy genre.",
+    "chapters": 13,
+    "status": "Completed",
+    "language": "English",
+    "tags": [
+      "Classic",
+      "Literature",
+      "Public Domain"
+    ],
+    "readCount": 350235,
+    "premium": true,
+    "featured": true,
+    "isAIGenerated": false,
+    "dateAdded": "2026-06-20",
+    "pages": 280,
+    "publisher": "Public Domain Classics"
+  },
+  {
+    "id": 345,
+    "title": "Dracula",
+    "author": "Bram Stoker",
+    "cover": "https://covers.openlibrary.org/b/id/12216503-L.jpg",
+    "gradient": null,
+    "genre": [
+      "Horror",
+      "Thriller",
+      "Fiction"
+    ],
+    "type": "Novel",
+    "contentFormat": "epub",
+    "rating": 4.5,
+    "synopsis": "Na hist\u00f3ria, um casal e seus amigos s\u00e3o atormentados por Conde Dr\u00e1cula, uma entidade sobrenatural e hemat\u00f3foga que, presa em uma maldi\u00e7\u00e3o contagiosa, pretende se mudar de seu recluso castelo na Transilv\u00e2nia para a efervescente Londres do s\u00e9culo XIX. Com a ajuda do professor Van Helsing, o grupo de amigos pretende enfrentar o morto-vivo, mesmo com todos os perigos que a ofensiva trar\u00e1.",
+    "chapters": 31,
+    "status": "Completed",
+    "language": "English",
+    "tags": [
+      "Classic",
+      "Literature",
+      "Public Domain"
+    ],
+    "readCount": 700469,
+    "premium": false,
+    "featured": true,
+    "isAIGenerated": false,
+    "dateAdded": "2026-06-20",
+    "pages": 280,
+    "publisher": "Public Domain Classics"
+  },
+  {
+    "id": 1661,
+    "title": "The Adventures of Sherlock Holmes",
+    "author": "Arthur Conan Doyle",
+    "cover": "https://covers.openlibrary.org/b/id/6717853-L.jpg",
+    "gradient": null,
+    "genre": [
+      "Mystery",
+      "Thriller",
+      "Fiction"
+    ],
+    "type": "Novel",
+    "contentFormat": "epub",
+    "rating": 4.5,
+    "synopsis": "The Adventures of Sherlock Holmes is a collection of twelve short stories by Arthur Conan Doyle, first published on 14 October 1892. It contains the earliest short stories featuring the consulting detective Sherlock Holmes, which had been published in twelve monthly issues of The Strand Magazine from July 1891 to June 1892. The stories are collected in the same sequence, which is not supported by any fictional chronology. The only characters common to all twelve are Holmes and Dr. Watson and all are related in first-person narrative from Watson's point of view.\r\n\r\n\r\nContains:\r\n[Scandal in Bohemia](https://openlibrary.org/works/OL14930611W/A_Scandal_in_Bohemia)\r\n[Red-headed League](https://openlibrary.org/works/OL14930336W/The_Red-Headed_League)\r\n[Case of Identity](https://openlibrary.org/works/OL14929939W/A_Case_of_Identity)\r\n[Boscombe Valley Mystery](https://openlibrary.org/works/OL18495288W/The_Boscombe_Valley_Mystery)\r\n[Five Orange Pips](https://openlibrary.org/works/OL1518120W/Five_Orange_Pips)\r\n[Man with the Twisted Lip](https://openlibrary.org/works/OL14930258W/The_Man_With_the_Twisted_Lip)\r\n[Adventure of the Blue Carbuncle](https://openlibrary.org/works/OL1518317W/Adventure_of_the_Blue_Carbuncle)\r\n[Adventure of the Speckled Band](https://openlibrary.org/works/OL262561W/Adventure_of_the_Speckled_Band)\r\n[Adventure of the Engineer's Thumb](https://openlibrary.org/works/OL1518318W/Adventure_of_the_Engineer's_Thumb)\r\n[Adventure of the Noble Bachelor](https://openlibrary.org/works/OL14929841W/Adventure_of_the_Noble_Bachelor)\r\n[Adventure of the Beryl Coronet](https://openlibrary.org/works/OL14929825W/Adventure_of_the_Beryl_Coronet)\r\n[Adventure of the Copper Beeches](https://openlibrary.org/works/OL1518116W/Adventure_of_the_Copper_Beeches)\r\n\r\n\r\n----------\r\nAlso contained in:\r\n\r\n - [Adventures and Memoirs of Sherlock Holmes](https://openlibrary.org/works/OL1518128W)\r\n - [Adventures of Sherlock Holmes](https://openlibrary.org/works/OL20624138W)\r\n - [Celebrated Cases of Sherlock Holmes](https://openlibrary.org/works/OL16076930W)\r\n - [Complete Sherlock Holmes](https://openlibrary.org/works/OL18188824W)\r\n - [Complete Sherlock Holmes: Volume I](https://openlibrary.org/works/OL14929975W)\r\n - [Illustrated Sherlock Holmes](https://openlibrary.org/works/OL1518342W)\r\n - [Obras completas de Conan Doyle: II](https://openlibrary.org/works/OL20787319W)\r\n - [Original Illustrated Sherlock Holmes](https://openlibrary.org/works/OL262528W)\r\n - [Original Illustrated 'Strand' Sherlock Holmes](https://openlibrary.org/works/OL262529W)\r\n - [Short Stories](https://openlibrary.org/works/OL18188661W)\r\n - [Works](https://openlibrary.org/works/OL16173818W)\r\n - [Works](https://openlibrary.org/works/OL14930383W)",
+    "chapters": 13,
+    "status": "Completed",
+    "language": "English",
+    "tags": [
+      "Classic",
+      "Literature",
+      "Public Domain"
+    ],
+    "readCount": 400444,
+    "premium": true,
+    "featured": false,
+    "isAIGenerated": false,
+    "dateAdded": "2026-06-20",
+    "pages": 280,
+    "publisher": "Public Domain Classics"
+  },
+  {
+    "id": 98,
+    "title": "A Tale of Two Cities",
+    "author": "Charles Dickens",
+    "cover": "https://covers.openlibrary.org/b/id/13301713-L.jpg",
+    "gradient": null,
+    "genre": [
+      "Historical",
+      "Drama",
+      "Fiction"
+    ],
+    "type": "Novel",
+    "contentFormat": "epub",
+    "rating": 4.5,
+    "synopsis": "A Tale of Two Cities is a historical novel published in 1859 by Charles Dickens, set in London and Paris before and during the French Revolution. The novel tells the story of the French Doctor Manette, his 18-year-long imprisonment in the Bastille in Paris, and his release to live in London with his daughter Lucie whom he had never met. The story is set against the conditions that led up to the French Revolution and the Reign of Terror. In the Introduction to the Encyclopedia of Adventure Fiction, critic Don D'Ammassa argues that it is an adventure novel because the protagonists are in constant danger of being imprisoned or killed.\r\n\r\nAs Dickens's best-known work of historical fiction, A Tale of Two Cities is said to be one of the best-selling novels of all time. In 2003, the novel was ranked 63rd on the BBC's The Big Read poll. The novel has been adapted for film, television, radio, and the stage, and has continued to influence popular culture.",
+    "chapters": 46,
+    "status": "Completed",
+    "language": "English",
+    "tags": [
+      "Classic",
+      "Literature",
+      "Public Domain"
+    ],
+    "readCount": 758077,
+    "premium": false,
+    "featured": false,
+    "isAIGenerated": false,
+    "dateAdded": "2026-06-20",
+    "pages": 280,
+    "publisher": "Public Domain Classics"
+  },
+  {
+    "id": 174,
+    "title": "The Picture of Dorian Gray",
+    "author": "Oscar Wilde",
+    "cover": "https://covers.openlibrary.org/b/id/14314858-L.jpg",
+    "gradient": null,
+    "genre": [
+      "Drama",
+      "Horror",
+      "Fiction"
+    ],
+    "type": "Novel",
+    "contentFormat": "epub",
+    "rating": 4.5,
+    "synopsis": "**The Picture of Dorian Gray** is a philosophical novel by Irish writer Oscar Wilde. A shorter novella-length version was published in the July 1890 issue of the American periodical *Lippincott\u2019s Monthly Magazine*. The novel-length version was published in April 1891.\r\n\r\n(Source: [Wikipedia](https://en.wikipedia.org/wiki/The_Picture_of_Dorian_Gray))",
+    "chapters": 22,
+    "status": "Completed",
+    "language": "English",
+    "tags": [
+      "Classic",
+      "Literature",
+      "Public Domain"
+    ],
+    "readCount": 817867,
+    "premium": true,
+    "featured": false,
+    "isAIGenerated": false,
+    "dateAdded": "2026-06-20",
+    "pages": 280,
+    "publisher": "Public Domain Classics"
+  },
+  {
+    "id": 2701,
+    "title": "Moby Dick",
+    "author": "Herman Melville",
+    "cover": "https://covers.openlibrary.org/b/id/10544254-L.jpg",
+    "gradient": null,
+    "genre": [
+      "Adventure",
+      "Fiction"
+    ],
+    "type": "Novel",
+    "contentFormat": "epub",
+    "rating": 4.5,
+    "synopsis": "\"Command the murderous chalices! Drink ye harpooners! Drink and swear, ye men that man the deathful whaleboat's bow -- Death to Moby Dick!\" So Captain Ahab binds his crew to fulfil his obsession -- the destruction of the great white whale. Under his lordly but maniacal command the Pequod's commercial mission is perverted to one of vengeance. To Ahab, the monster that destroyed his body is not a creature, but the symbol of \"some unknown but still reasoning thing.\" Uncowed by natural disasters, ill omens, even death, Ahab urges his ship towards \"the undeliverable, nameless perils of the whale.\"",
+    "chapters": 27,
+    "status": "Completed",
+    "language": "English",
+    "tags": [
+      "Classic",
+      "Literature",
+      "Public Domain"
+    ],
+    "readCount": 189846,
+    "premium": false,
+    "featured": false,
+    "isAIGenerated": false,
+    "dateAdded": "2026-06-20",
+    "pages": 280,
+    "publisher": "Public Domain Classics"
+  },
+  {
+    "id": 1513,
+    "title": "Romeo and Juliet",
+    "author": "William Shakespeare",
+    "cover": "https://covers.openlibrary.org/b/id/8257991-L.jpg",
+    "gradient": null,
+    "genre": [
+      "Drama",
+      "Romance"
+    ],
+    "type": "Novel",
+    "contentFormat": "epub",
+    "rating": 4.5,
+    "synopsis": "Romeo and Juliet is a tragedy written by William Shakespeare early in his career about two young Italian star-crossed lovers whose deaths ultimately reconcile their feuding families. It was among Shakespeare's most popular plays during his lifetime and, along with Hamlet, is one of his most frequently performed plays. Today, the title characters are regarded as archetypal young lovers.",
+    "chapters": 8,
+    "status": "Completed",
+    "language": "English",
+    "tags": [
+      "Classic",
+      "Literature",
+      "Public Domain"
+    ],
+    "readCount": 231197,
+    "premium": true,
+    "featured": false,
+    "isAIGenerated": false,
+    "dateAdded": "2026-06-20",
+    "pages": 280,
+    "publisher": "Public Domain Classics"
+  },
+  {
+    "id": 64317,
+    "title": "The Great Gatsby",
+    "author": "F. Scott Fitzgerald",
+    "cover": "https://covers.openlibrary.org/b/id/10590366-L.jpg",
+    "gradient": null,
+    "genre": [
+      "Drama",
+      "Fiction"
+    ],
+    "type": "Novel",
+    "contentFormat": "epub",
+    "rating": 4.5,
+    "synopsis": "A timeless classic by F. Scott Fitzgerald representing the best of English literature.",
+    "chapters": 5,
+    "status": "Completed",
+    "language": "English",
+    "tags": [
+      "Classic",
+      "Literature",
+      "Public Domain"
+    ],
+    "readCount": 846112,
+    "premium": false,
+    "featured": false,
+    "isAIGenerated": false,
+    "dateAdded": "2026-06-20",
+    "pages": 280,
+    "publisher": "Public Domain Classics"
+  },
+  {
+    "id": 1727,
+    "title": "The Odyssey",
+    "author": "Homer",
+    "cover": "https://covers.openlibrary.org/b/id/12474938-L.jpg",
+    "gradient": null,
+    "genre": [
+      "Fantasy",
+      "Adventure",
+      "Historical"
+    ],
+    "type": "Novel",
+    "contentFormat": "epub",
+    "rating": 4.5,
+    "synopsis": "A new translation of the epic poem retells the story of Odysseus's ten-year voyage home to Ithaca after the Trojan War.",
+    "chapters": 28,
+    "status": "Completed",
+    "language": "English",
+    "tags": [
+      "Classic",
+      "Literature",
+      "Public Domain"
+    ],
+    "readCount": 664887,
+    "premium": true,
+    "featured": false,
+    "isAIGenerated": false,
+    "dateAdded": "2026-06-20",
+    "pages": 280,
+    "publisher": "Public Domain Classics"
+  },
+  {
+    "id": 74,
+    "title": "The Adventures of Tom Sawyer",
+    "author": "Mark Twain",
+    "cover": "https://covers.openlibrary.org/b/id/12043351-L.jpg",
+    "gradient": null,
+    "genre": [
+      "Adventure",
+      "Fiction"
+    ],
+    "type": "Novel",
+    "contentFormat": "epub",
+    "rating": 4.5,
+    "synopsis": "Mark Twain created the memorable characters Tom Sawyer and Huckleberry Finn drawing from the experiences of boys he grew up with in Missouri. Set by the Mississippi River in the 1840's, it follows these boys as they get into predicament after predicament. Tom's classic whitewashing of the fence has become part of American legend, and the book paints a nostalgic picture of life in the middle of the nineteenth century. Tom runs away from home to an island in the river, chases Injun Joe and his treasure, and even gets trapped in a cave for days with Becky Thatcher. The book is one of Twain's most beloved stories.",
+    "chapters": 39,
+    "status": "Completed",
+    "language": "English",
+    "tags": [
+      "Classic",
+      "Literature",
+      "Public Domain"
+    ],
+    "readCount": 236686,
+    "premium": false,
+    "featured": false,
+    "isAIGenerated": false,
+    "dateAdded": "2026-06-20",
+    "pages": 280,
+    "publisher": "Public Domain Classics"
+  },
+  {
+    "id": 219,
+    "title": "Heart of Darkness",
+    "author": "Joseph Conrad",
+    "cover": "https://covers.openlibrary.org/b/id/12307847-L.jpg",
+    "gradient": null,
+    "genre": [
+      "Fiction",
+      "Drama"
+    ],
+    "type": "Novel",
+    "contentFormat": "epub",
+    "rating": 4.5,
+    "synopsis": "Heart of Darkness (1899) is a novella by Polish-English novelist Joseph Conrad, about a voyage up the Congo River into the Congo Free State, in the heart of Africa, by the story's narrator Charles Marlow. Marlow tells his story to friends aboard a boat anchored on the River Thames. Joseph Conrad is one of the greatest English writers, and Heart of Darkness is considered his best.  His readers are brought to face our psychological selves to answer, \u2018Who is the true savage?\u2019. Originally published in 1902, Heart of Darkness remains one of this century\u2019s most enduring works of fiction. Written several years after Joseph Conrad\u2019s grueling sojourn in the Belgian Congo, the novel is a complex meditation on colonialism, evil, and the thin line between civilization and barbarity.",
+    "chapters": 5,
+    "status": "Completed",
+    "language": "English",
+    "tags": [
+      "Classic",
+      "Literature",
+      "Public Domain"
+    ],
+    "readCount": 444496,
+    "premium": true,
+    "featured": false,
+    "isAIGenerated": false,
+    "dateAdded": "2026-06-20",
+    "pages": 280,
+    "publisher": "Public Domain Classics"
+  },
+  {
+    "id": 844,
+    "title": "The Importance of Being Earnest",
+    "author": "Oscar Wilde",
+    "cover": "https://covers.openlibrary.org/b/id/1260453-L.jpg",
+    "gradient": null,
+    "genre": [
+      "Drama",
+      "Romance"
+    ],
+    "type": "Novel",
+    "contentFormat": "epub",
+    "rating": 4.5,
+    "synopsis": "Set in England during the late Victorian era, the play's humour derives in part from characters maintaining fictitious identities to escape unwelcome social obligations. It is replete with witty dialogue and satirises some of the foibles and hypocrisy of late Victorian society. It has proved Wilde's most enduringly popular play. - [*Wikipedia*][1]\r\n\r\n\r\n  [1]: http://en.wikipedia.org/wiki/The_Importance_of_Being_Earnest",
+    "chapters": 4,
+    "status": "Completed",
+    "language": "English",
+    "tags": [
+      "Classic",
+      "Literature",
+      "Public Domain"
+    ],
+    "readCount": 709949,
+    "premium": false,
+    "featured": false,
+    "isAIGenerated": false,
+    "dateAdded": "2026-06-20",
+    "pages": 280,
+    "publisher": "Public Domain Classics"
+  },
+  {
+    "id": 2591,
+    "title": "Grimms' Fairy Tales",
+    "author": "Jacob Grimm and Wilhelm Grimm",
+    "cover": "https://covers.openlibrary.org/b/id/11639412-L.jpg",
+    "gradient": null,
+    "genre": [
+      "Fantasy",
+      "Adventure"
+    ],
+    "type": "Novel",
+    "contentFormat": "epub",
+    "rating": 4.5,
+    "synopsis": "Grimm's Fairy Tales is a work by Brothers Grimm now brought to you in this new edition of the timeless classic.",
+    "chapters": 63,
+    "status": "Completed",
+    "language": "English",
+    "tags": [
+      "Classic",
+      "Literature",
+      "Public Domain"
+    ],
+    "readCount": 590645,
+    "premium": true,
+    "featured": false,
+    "isAIGenerated": false,
+    "dateAdded": "2026-06-20",
+    "pages": 280,
+    "publisher": "Public Domain Classics"
+  },
+  {
+    "id": 5200,
+    "title": "Metamorphosis",
+    "author": "Franz Kafka",
+    "cover": "https://covers.openlibrary.org/b/id/12820198-L.jpg",
+    "gradient": null,
+    "genre": [
+      "Fiction",
+      "Drama"
+    ],
+    "type": "Novel",
+    "contentFormat": "epub",
+    "rating": 4.5,
+    "synopsis": "Metamorphosis (German: Die Verwandlung) is a novella written by Franz Kafka which was first published in 1915. One of Kafka's best-known works, Metamorphosis tells the story of salesman Gregor Samsa, who wakes one morning to find himself inexplicably transformed into a huge insect (German: ungeheueres Ungeziefer, lit. \"monstrous vermin\") and subsequently struggles to adjust to this new condition. The novella has been widely discussed among literary critics, with differing interpretations being offered. In popular culture and adaptations of the novella, the insect is commonly depicted as a cockroach.\r\n\r\nWith a length of about 70 printed pages over three chapters, it is the longest of the stories Kafka considered complete and published during his lifetime. The text was first published in 1915 in the October issue of the journal Die wei\u00dfen Bl\u00e4tter under the editorship of Ren\u00e9 Schickele. The first edition in book form appeared in December 1915 in the series Der j\u00fcngste Tag, edited by Kurt Wolff.",
+    "chapters": 4,
+    "status": "Completed",
+    "language": "English",
+    "tags": [
+      "Classic",
+      "Literature",
+      "Public Domain"
+    ],
+    "readCount": 482790,
+    "premium": false,
+    "featured": false,
+    "isAIGenerated": false,
+    "dateAdded": "2026-06-20",
+    "pages": 280,
+    "publisher": "Public Domain Classics"
+  },
+  {
+    "id": 43,
+    "title": "The Strange Case of Dr. Jekyll and Mr. Hyde",
+    "author": "Robert Louis Stevenson",
+    "cover": "https://covers.openlibrary.org/b/id/295773-L.jpg",
+    "gradient": null,
+    "genre": [
+      "Horror",
+      "Mystery",
+      "Thriller"
+    ],
+    "type": "Novel",
+    "contentFormat": "epub",
+    "rating": 4.5,
+    "synopsis": "Mr. Gabriel Utterson is a serious, austere lawyer living a humdrum life in Victorian London. Yet there is a strange clause in his friend, Dr. Henry Jekyll's will: should he disappear for more than 3 months, everything will be inherited by Hyde. But after Edward Hyde's darker nature is revealed one dark winters night, Mr. Utterson begins to investigate the connection between the two men, and finds the dark secret binding them closer then he could have ever thought imaginable.\r\n\r\nAdapted countless times in film, some times in video game form, and referenced countless times in popular culture, here is the story that started it all: The Strange Case of Dr. Jekyll & Mr. Hyde!",
+    "chapters": 11,
+    "status": "Completed",
+    "language": "English",
+    "tags": [
+      "Classic",
+      "Literature",
+      "Public Domain"
+    ],
+    "readCount": 278524,
+    "premium": true,
+    "featured": false,
+    "isAIGenerated": false,
+    "dateAdded": "2026-06-20",
+    "pages": 280,
+    "publisher": "Public Domain Classics"
+  },
+  {
+    "id": 35,
+    "title": "The Time Machine",
+    "author": "H. G. Wells",
+    "cover": "https://covers.openlibrary.org/b/id/9009316-L.jpg",
+    "gradient": null,
+    "genre": [
+      "Sci-Fi",
+      "Adventure"
+    ],
+    "type": "Novel",
+    "contentFormat": "epub",
+    "rating": 4.5,
+    "synopsis": "The Time Traveller, a dreamer obsessed with traveling through time, builds himself a time machine and, much to his surprise, travels over 800,000 years into the future. He lands in the year 802701: the world has been transformed by a society living in apparent harmony and bliss, but as the Traveler stays in the future he discovers a hidden barbaric and depraved subterranean class. Wells's transparent commentary on the capitalist society was an instant bestseller and launched the time-travel genre.",
+    "chapters": 18,
+    "status": "Completed",
+    "language": "English",
+    "tags": [
+      "Classic",
+      "Literature",
+      "Public Domain"
+    ],
+    "readCount": 644202,
+    "premium": false,
+    "featured": false,
+    "isAIGenerated": false,
+    "dateAdded": "2026-06-20",
+    "pages": 280,
+    "publisher": "Public Domain Classics"
+  },
+  {
+    "id": 33,
+    "title": "The Scarlet Letter",
+    "author": "Nathaniel Hawthorne",
+    "cover": "https://covers.openlibrary.org/b/id/5654516-L.jpg",
+    "gradient": null,
+    "genre": [
+      "Historical",
+      "Drama",
+      "Fiction"
+    ],
+    "type": "Novel",
+    "contentFormat": "epub",
+    "rating": 4.5,
+    "synopsis": "[Will be available soon] A stark and allegorical tale of adultery, guilt, and social repression in Puritan New England, The Scarlet Letter is a foundational work of American literature. Nathaniel Hawthorne's exploration of the dichotomy between the public and private self, internal passion and external convention, gives us the unforgettable Hester Prynne, who discovers strength in the face of ostracism and emerges as a heroine ahead of her time.",
+    "chapters": 26,
+    "status": "Unavailable",
+    "language": "English",
+    "tags": [
+      "Classic",
+      "Literature",
+      "Public Domain",
+      "Unavailable"
+    ],
+    "readCount": 575974,
+    "premium": true,
+    "featured": false,
+    "isAIGenerated": false,
+    "dateAdded": "2026-06-20",
+    "pages": 280,
+    "publisher": "Public Domain Classics"
+  },
+  {
+    "id": 120,
+    "title": "Treasure Island",
+    "author": "Robert Louis Stevenson",
+    "cover": "https://covers.openlibrary.org/b/id/13859660-L.jpg",
+    "gradient": null,
+    "genre": [
+      "Adventure",
+      "Fiction"
+    ],
+    "type": "Novel",
+    "contentFormat": "epub",
+    "rating": 4.5,
+    "synopsis": "Traditionally considered a coming-of-age story, Treasure Island is an adventure tale known for its atmosphere, characters and action, and also as a wry commentary on the ambiguity of morality \u2014 as seen in Long John Silver \u2014 unusual for children's literature then and now. It is one of the most frequently dramatized of all novels. The influence of Treasure Island on popular perceptions of pirates is enormous, including treasure maps marked with an \"X\", schooners, the Black Spot, tropical islands, and one-legged seamen carrying parrots on their shoulders",
+    "chapters": 37,
+    "status": "Completed",
+    "language": "English",
+    "tags": [
+      "Classic",
+      "Literature",
+      "Public Domain"
+    ],
+    "readCount": 600433,
+    "premium": false,
+    "featured": false,
+    "isAIGenerated": false,
+    "dateAdded": "2026-06-20",
+    "pages": 280,
+    "publisher": "Public Domain Classics"
+  }
+]

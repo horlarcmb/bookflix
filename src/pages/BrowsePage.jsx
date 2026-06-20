@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { FiGrid, FiList } from 'react-icons/fi';
 import { useBook } from '../context/BookContext';
+import BookCard from '../components/BookCard';
 import { GENRES, CONTENT_TYPES } from '../data/books';
 
 export default function BrowsePage() {

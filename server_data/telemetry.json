@@ -1,1 +1,155 @@
-[]
+[
+  {
+    "userId": null,
+    "userEmail": null,
+    "eventType": "page_view",
+    "metadata": {
+      "path": "/book/16"
+    },
+    "timestamp": "2026-06-20T01:00:31.303Z"
+  },
+  {
+    "userId": null,
+    "userEmail": null,
+    "eventType": "page_view",
+    "metadata": {
+      "path": "/book/16"
+    },
+    "timestamp": "2026-06-20T01:00:31.308Z"
+  },
+  {
+    "userId": null,
+    "userEmail": null,
+    "eventType": "page_view",
+    "metadata": {
+      "path": "/login"
+    },
+    "timestamp": "2026-06-20T01:00:31.313Z"
+  },
+  {
+    "userId": null,
+    "userEmail": null,
+    "eventType": "page_view",
+    "metadata": {
+      "path": "/"
+    },
+    "timestamp": "2026-06-20T01:31:33.726Z"
+  },
+  {
+    "userId": null,
+    "userEmail": null,
+    "eventType": "page_view",
+    "metadata": {
+      "path": "/"
+    },
+    "timestamp": "2026-06-20T01:31:33.740Z"
+  },
+  {
+    "userId": null,
+    "userEmail": null,
+    "eventType": "page_view",
+    "metadata": {
+      "path": "/login"
+    },
+    "timestamp": "2026-06-20T01:31:42.066Z"
+  },
+  {
+    "userId": null,
+    "userEmail": null,
+    "eventType": "page_view",
+    "metadata": {
+      "path": "/login"
+    },
+    "timestamp": "2026-06-20T01:32:22.751Z"
+  },
+  {
+    "userId": null,
+    "userEmail": null,
+    "eventType": "page_view",
+    "metadata": {
+      "path": "/login"
+    },
+    "timestamp": "2026-06-20T01:32:22.781Z"
+  },
+  {
+    "userId": "admin-1",
+    "userEmail": "rahmanridwanidowu@gmail.com",
+    "eventType": "login",
+    "metadata": {
+      "name": "Optimus"
+    },
+    "timestamp": "2026-06-20T01:33:14.744Z"
+  },
+  {
+    "userId": "admin-1",
+    "userEmail": "rahmanridwanidowu@gmail.com",
+    "eventType": "page_view",
+    "metadata": {
+      "path": "/login"
+    },
+    "timestamp": "2026-06-20T01:33:14.906Z"
+  },
+  {
+    "userId": "admin-1",
+    "userEmail": "rahmanridwanidowu@gmail.com",
+    "eventType": "page_view",
+    "metadata": {
+      "path": "/"
+    },
+    "timestamp": "2026-06-20T01:33:15.124Z"
+  },
+  {
+    "userId": "admin-1",
+    "userEmail": "rahmanridwanidowu@gmail.com",
+    "eventType": "page_view",
+    "metadata": {
+      "path": "/browse"
+    },
+    "timestamp": "2026-06-20T01:33:27.731Z"
+  },
+  {
+    "userId": "admin-1",
+    "userEmail": "rahmanridwanidowu@gmail.com",
+    "eventType": "page_view",
+    "metadata": {
+      "path": "/browse"
+    },
+    "timestamp": "2026-06-20T01:33:27.753Z"
+  },
+  {
+    "userId": "admin-1",
+    "userEmail": "rahmanridwanidowu@gmail.com",
+    "eventType": "page_view",
+    "metadata": {
+      "path": "/book/84"
+    },
+    "timestamp": "2026-06-20T01:33:40.951Z"
+  },
+  {
+    "userId": "admin-1",
+    "userEmail": "rahmanridwanidowu@gmail.com",
+    "eventType": "page_view",
+    "metadata": {
+      "path": "/book/84"
+    },
+    "timestamp": "2026-06-20T01:33:40.957Z"
+  },
+  {
+    "userId": "admin-1",
+    "userEmail": "rahmanridwanidowu@gmail.com",
+    "eventType": "page_view",
+    "metadata": {
+      "path": "/book/84"
+    },
+    "timestamp": "2026-06-20T01:34:08.161Z"
+  },
+  {
+    "userId": "admin-1",
+    "userEmail": "rahmanridwanidowu@gmail.com",
+    "eventType": "page_view",
+    "metadata": {
+      "path": "/book/84"
+    },
+    "timestamp": "2026-06-20T01:34:08.360Z"
+  }
+]
