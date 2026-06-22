@@ -54,7 +54,6 @@ export default function BookCard({ book, showInfo = true }) {
         )}
 
         <div className="book-card-badges">
-          {book.premium && <span className="badge badge-premium"><FaCrown style={{ fontSize: '0.6rem' }} /> PRO</span>}
           {isNew() && <span className="badge badge-new">NEW</span>}
           {book.isAIGenerated && <span className="badge badge-ai" style={{ background: 'rgba(0, 210, 255, 0.8)', border: '1px solid #00f2fe' }}>🤖 AI</span>}
         </div>

@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import { GENRES } from '../data/books';
 
@@ -17,6 +17,31 @@ export default function SignupPage() {
   const [selectedGenres, setSelectedGenres] = useState([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  const [showExplanationModal, setShowExplanationModal] = useState(false);
+  const [syncStep, setSyncStep] = useState(0);
+
+  useEffect(() => {
+    if (!showExplanationModal) return;
+    
+    setSyncStep(1);
+    const t1 = setTimeout(() => setSyncStep(2), 500);
+    const t2 = setTimeout(() => setSyncStep(3), 1000);
+    const t3 = setTimeout(() => setSyncStep(4), 1500);
+    const t4 = setTimeout(() => setSyncStep(5), 2000);
+    
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      clearTimeout(t3);
+      clearTimeout(t4);
+    };
+  }, [showExplanationModal]);
+
+  const handleEnterApp = () => {
+    navigate('/');
+  };
+
 
 
   const handleStep1Submit = (e) => {
@@ -52,7 +77,7 @@ export default function SignupPage() {
     setLoading(true);
     try {
       await signup(name, email, password, selectedGenres, false);
-      navigate('/');
+      setShowExplanationModal(true);
     } catch (err) {
       setError(err.message || 'Registration failed. Please try again.');
       setStep(1); // Go back to first step to fix email/credentials if conflict
@@ -183,7 +208,174 @@ export default function SignupPage() {
         )}
       </motion.div>
 
+      <AnimatePresence>
+        {showExplanationModal && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 0.7 }}
+              exit={{ opacity: 0 }}
+              style={{
+                position: 'fixed',
+                inset: 0,
+                background: '#000000',
+                backdropFilter: 'blur(10px)',
+                zIndex: 9999
+              }}
+            />
+            
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 30 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 30 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              style={{
+                position: 'fixed',
+                top: '50%',
+                left: '50%',
+                transform: 'translate(-50%, -50%)',
+                width: '95%',
+                maxWidth: '460px',
+                background: 'rgba(20, 20, 20, 0.85)',
+                border: '1px solid var(--border)',
+                borderRadius: 'var(--radius-xl)',
+                padding: 'var(--space-2xl)',
+                zIndex: 10000,
+                boxShadow: 'var(--shadow-xl), 0 0 30px rgba(229, 9, 20, 0.1)',
+                backdropFilter: 'blur(20px)',
+                textAlign: 'left'
+              }}
+            >
+              <h2 style={{ fontFamily: 'var(--font-display)', fontSize: '1.8rem', fontWeight: 800, marginBottom: 'var(--space-sm)', color: 'var(--text-primary)' }}>
+                Welcome to Book<span style={{ color: 'var(--accent)' }}>Flix</span>
+              </h2>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: 'var(--space-xl)', lineHeight: '1.6' }}>
+                We're initializing your secure streaming session. Here's exactly what's happening in the background:
+              </p>
 
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', marginBottom: 'var(--space-2xl)' }}>
+                {/* Step 1: Authentication */}
+                <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-start', opacity: syncStep >= 1 ? 1 : 0.4, transition: 'opacity 0.3s' }}>
+                  <div style={{
+                    width: '28px',
+                    height: '28px',
+                    borderRadius: '50%',
+                    background: syncStep > 1 ? 'rgba(70,211,105,0.15)' : syncStep === 1 ? 'rgba(229,9,20,0.1)' : 'rgba(255,255,255,0.03)',
+                    border: syncStep > 1 ? '1px solid var(--success)' : syncStep === 1 ? '1px solid var(--accent)' : '1px solid var(--border)',
+                    color: syncStep > 1 ? 'var(--success)' : syncStep === 1 ? 'var(--accent)' : 'var(--text-tertiary)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0
+                  }}>
+                    {syncStep > 1 ? (
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                    ) : syncStep === 1 ? (
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" style={{ animation: 'spin 1s linear infinite' }}><circle cx="12" cy="12" r="10" stroke="rgba(255,255,255,0.1)"></circle><path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor"></path></svg>
+                    ) : '1'}
+                  </div>
+                  <div>
+                    <h4 style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '4px' }}>Session Authentication</h4>
+                    <p style={{ fontSize: '0.8rem', color: 'var(--text-tertiary)', lineHeight: '1.4' }}>Verifying your credentials and securing the connection via a JWT authorization token.</p>
+                  </div>
+                </div>
+
+                {/* Step 2: Library Sync */}
+                <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-start', opacity: syncStep >= 2 ? 1 : 0.4, transition: 'opacity 0.3s' }}>
+                  <div style={{
+                    width: '28px',
+                    height: '28px',
+                    borderRadius: '50%',
+                    background: syncStep > 2 ? 'rgba(70,211,105,0.15)' : syncStep === 2 ? 'rgba(229,9,20,0.1)' : 'rgba(255,255,255,0.03)',
+                    border: syncStep > 2 ? '1px solid var(--success)' : syncStep === 2 ? '1px solid var(--accent)' : '1px solid var(--border)',
+                    color: syncStep > 2 ? 'var(--success)' : syncStep === 2 ? 'var(--accent)' : 'var(--text-tertiary)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0
+                  }}>
+                    {syncStep > 2 ? (
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                    ) : syncStep === 2 ? (
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" style={{ animation: 'spin 1s linear infinite' }}><circle cx="12" cy="12" r="10" stroke="rgba(255,255,255,0.1)"></circle><path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor"></path></svg>
+                    ) : '2'}
+                  </div>
+                  <div>
+                    <h4 style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '4px' }}>Library & Progress Sync</h4>
+                    <p style={{ fontSize: '0.8rem', color: 'var(--text-tertiary)', lineHeight: '1.4' }}>Retrieving your reading history, completed chapters, and saved bookmarks from database files.</p>
+                  </div>
+                </div>
+
+                {/* Step 3: Telemetry */}
+                <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-start', opacity: syncStep >= 3 ? 1 : 0.4, transition: 'opacity 0.3s' }}>
+                  <div style={{
+                    width: '28px',
+                    height: '28px',
+                    borderRadius: '50%',
+                    background: syncStep > 3 ? 'rgba(70,211,105,0.15)' : syncStep === 3 ? 'rgba(229,9,20,0.1)' : 'rgba(255,255,255,0.03)',
+                    border: syncStep > 3 ? '1px solid var(--success)' : syncStep === 3 ? '1px solid var(--accent)' : '1px solid var(--border)',
+                    color: syncStep > 3 ? 'var(--success)' : syncStep === 3 ? 'var(--accent)' : 'var(--text-tertiary)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0
+                  }}>
+                    {syncStep > 3 ? (
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                    ) : syncStep === 3 ? (
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" style={{ animation: 'spin 1s linear infinite' }}><circle cx="12" cy="12" r="10" stroke="rgba(255,255,255,0.1)"></circle><path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor"></path></svg>
+                    ) : '3'}
+                  </div>
+                  <div>
+                    <h4 style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '4px' }}>Activity Telemetry Dispatcher</h4>
+                    <p style={{ fontSize: '0.8rem', color: 'var(--text-tertiary)', lineHeight: '1.4' }}>Initializing real-time event logging to capture page views, search queries, and content reads.</p>
+                  </div>
+                </div>
+
+                {/* Step 4: AI Recommendations */}
+                <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-start', opacity: syncStep >= 4 ? 1 : 0.4, transition: 'opacity 0.3s' }}>
+                  <div style={{
+                    width: '28px',
+                    height: '28px',
+                    borderRadius: '50%',
+                    background: syncStep > 4 ? 'rgba(70,211,105,0.15)' : syncStep === 4 ? 'rgba(229,9,20,0.1)' : 'rgba(255,255,255,0.03)',
+                    border: syncStep > 4 ? '1px solid var(--success)' : syncStep === 4 ? '1px solid var(--accent)' : '1px solid var(--border)',
+                    color: syncStep > 4 ? 'var(--success)' : syncStep === 4 ? 'var(--accent)' : 'var(--text-tertiary)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0
+                  }}>
+                    {syncStep > 4 ? (
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                    ) : syncStep === 4 ? (
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" style={{ animation: 'spin 1s linear infinite' }}><circle cx="12" cy="12" r="10" stroke="rgba(255,255,255,0.1)"></circle><path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor"></path></svg>
+                    ) : '4'}
+                  </div>
+                  <div>
+                    <h4 style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '4px' }}>AI Recommendation Calibration</h4>
+                    <p style={{ fontSize: '0.8rem', color: 'var(--text-tertiary)', lineHeight: '1.4' }}>Calibrating content similarity graphs and mapping genres to your personal library.</p>
+                  </div>
+                </div>
+              </div>
+
+              <button
+                onClick={handleEnterApp}
+                className="btn btn-primary btn-lg"
+                style={{ width: '100%', transition: 'all 0.3s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
+                disabled={syncStep < 5}
+              >
+                {syncStep < 5 ? (
+                  <>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" style={{ animation: 'spin 1s linear infinite' }}><circle cx="12" cy="12" r="10" stroke="rgba(255,255,255,0.1)"></circle><path d="M12 2a10 10 0 0 1 10 10" stroke="currentColor"></path></svg>
+                    Synchronizing BookFlix...
+                  </>
+                ) : 'Enter BookFlix'}
+              </button>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

@@ -20,8 +20,6 @@ const USERS_FILE = path.join(DATA_DIR, 'users.json');
 const BOOKS_FILE = path.join(DATA_DIR, 'books.json');
 const CONTENTS_FILE = path.join(DATA_DIR, 'book_contents.json');
 const TELEMETRY_FILE = path.join(DATA_DIR, 'telemetry.json');
-const TRANSACTIONS_FILE = path.join(DATA_DIR, 'transactions.json');
-const SETTINGS_FILE = path.join(DATA_DIR, 'system_settings.json');
 
 // Ensure database files exist
 if (!fs.existsSync(DATA_DIR)) {
@@ -38,8 +36,6 @@ initJsonFile(USERS_FILE, []);
 initJsonFile(BOOKS_FILE, []);
 initJsonFile(CONTENTS_FILE, {});
 initJsonFile(TELEMETRY_FILE, []);
-initJsonFile(TRANSACTIONS_FILE, []);
-initJsonFile(SETTINGS_FILE, { balance: 0.00, bankDetails: null });
 
 // Helper DB Read/Write Functions
 const readDB = (filePath) => {
@@ -278,6 +274,40 @@ const db = {
     }
   },
 
+  updateBook: async (id, metadataUpdates, contentUpdates) => {
+    if (useMongo) {
+      let book = await BookModel.findOne({ id });
+      if (!book) return null;
+      Object.assign(book, metadataUpdates);
+      await book.save();
+
+      if (contentUpdates) {
+        let bookContent = await BookContentModel.findOne({ bookId: id });
+        if (!bookContent) {
+          bookContent = new BookContentModel({ bookId: id, ...contentUpdates });
+        } else {
+          Object.assign(bookContent, contentUpdates);
+        }
+        await bookContent.save();
+      }
+      return book.toObject();
+    } else {
+      const books = readDB(BOOKS_FILE);
+      const idx = books.findIndex(b => b.id === id);
+      if (idx === -1) return null;
+
+      books[idx] = { ...books[idx], ...metadataUpdates };
+      writeDB(BOOKS_FILE, books);
+
+      if (contentUpdates) {
+        const contents = readDB(CONTENTS_FILE);
+        contents[id] = { ...contents[id], ...contentUpdates };
+        writeDB(CONTENTS_FILE, contents);
+      }
+      return books[idx];
+    }
+  },
+
   deleteBook: async (id) => {
     if (useMongo) {
       await BookModel.findOneAndDelete({ id });
@@ -327,66 +357,6 @@ const db = {
     } else {
       const logs = readDB(TELEMETRY_FILE);
       return logs.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)).slice(0, 100);
-    }
-  },
-
-  createTransaction: async (txData) => {
-    if (useMongo) {
-      const tx = new TransactionModel(txData);
-      await tx.save();
-      return tx.toObject();
-    } else {
-      const txs = readDB(TRANSACTIONS_FILE);
-      const newTx = { ...txData, timestamp: new Date().toISOString() };
-      txs.push(newTx);
-      writeDB(TRANSACTIONS_FILE, txs);
-      return newTx;
-    }
-  },
-
-  getTransactions: async () => {
-    if (useMongo) {
-      return await TransactionModel.find({}).sort({ timestamp: -1 }).lean();
-    } else {
-      const txs = readDB(TRANSACTIONS_FILE);
-      return txs.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-    }
-  },
-
-  getSystemSettings: async () => {
-    if (useMongo) {
-      let settings = await SystemSettingsModel.findOne({}).lean();
-      if (!settings) {
-        settings = new SystemSettingsModel({ balance: 0.00, bankDetails: null });
-        await SystemSettingsModel.create(settings);
-      }
-      return settings;
-    } else {
-      let settings = readDB(SETTINGS_FILE);
-      if (!settings || settings.balance === undefined) {
-        settings = { balance: 0.00, bankDetails: null };
-        writeDB(SETTINGS_FILE, settings);
-      }
-      return settings;
-    }
-  },
-
-  updateSystemSettings: async (updates) => {
-    if (useMongo) {
-      let settings = await SystemSettingsModel.findOne({});
-      if (!settings) {
-        settings = new SystemSettingsModel({ balance: 0.00, bankDetails: null });
-      }
-      if (updates.balance !== undefined) settings.balance = updates.balance;
-      if (updates.bankDetails !== undefined) settings.bankDetails = updates.bankDetails;
-      await settings.save();
-      return settings.toObject();
-    } else {
-      const settings = readDB(SETTINGS_FILE) || { balance: 0.00, bankDetails: null };
-      if (updates.balance !== undefined) settings.balance = updates.balance;
-      if (updates.bankDetails !== undefined) settings.bankDetails = updates.bankDetails;
-      writeDB(SETTINGS_FILE, settings);
-      return settings;
     }
   }
 };
@@ -788,6 +758,24 @@ app.post('/api/books', authenticateToken, requireAdmin, async (req, res) => {
   }
 });
 
+// Update Book (Admin or Creator)
+app.put('/api/books/:id', authenticateToken, requireAdmin, async (req, res) => {
+  const bookId = parseInt(req.params.id);
+  if (!bookId) return res.status(400).json({ message: 'Invalid Book ID' });
+
+  const { metadata, content } = req.body;
+  try {
+    const updated = await db.updateBook(bookId, metadata || {}, content);
+    if (!updated) {
+      return res.status(404).json({ message: 'Book not found' });
+    }
+    res.json(updated);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error updating book' });
+  }
+});
+
 // Delete Book (Admin or Creator)
 app.delete('/api/books/:id', authenticateToken, requireAdmin, async (req, res) => {
   const bookId = parseInt(req.params.id);
@@ -865,106 +853,6 @@ app.get('/api/admin/telemetry', authenticateToken, requireAdmin, async (req, res
   }
 });
 
-// Get Transactions List (Admin only)
-app.get('/api/admin/transactions', authenticateToken, requireAdmin, async (req, res) => {
-  try {
-    const txs = await db.getTransactions();
-    res.json(txs);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Server error' });
-  }
-});
-
-// Get System Settings/Balance (Admin only)
-app.get('/api/admin/settings', authenticateToken, requireAdmin, async (req, res) => {
-  try {
-    const settings = await db.getSystemSettings();
-    res.json(settings);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Server error' });
-  }
-});
-
-// Link Bank Account (Admin only)
-app.post('/api/admin/settings/bank', authenticateToken, requireAdmin, async (req, res) => {
-  const { bankName, accountNumber, routingNumber, holderName } = req.body;
-  if (!bankName || !accountNumber || !routingNumber || !holderName) {
-    return res.status(400).json({ message: 'All bank details are required' });
-  }
-
-  try {
-    const updated = await db.updateSystemSettings({
-      bankDetails: { bankName, accountNumber, routingNumber, holderName }
-    });
-    // Log telemetry
-    await db.logTelemetry({
-      userId: req.user.id,
-      userEmail: req.user.email,
-      eventType: 'bank_link',
-      metadata: { bankName, holderName },
-      timestamp: new Date()
-    });
-    res.json(updated);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Server error' });
-  }
-});
-
-// Withdraw Funds (Admin only)
-app.post('/api/admin/settings/withdraw', authenticateToken, requireAdmin, async (req, res) => {
-  const { amount } = req.body;
-  const withdrawAmount = parseFloat(amount);
-  if (isNaN(withdrawAmount) || withdrawAmount <= 0) {
-    return res.status(400).json({ message: 'Invalid withdrawal amount' });
-  }
-
-  try {
-    const settings = await db.getSystemSettings();
-    if (!settings.bankDetails || !settings.bankDetails.accountNumber) {
-      return res.status(400).json({ message: 'No bank account linked for withdrawals' });
-    }
-
-    if (settings.balance < withdrawAmount) {
-      return res.status(400).json({ message: 'Insufficient balance' });
-    }
-
-    const nextBalance = parseFloat((settings.balance - withdrawAmount).toFixed(2));
-    await db.updateSystemSettings({ balance: nextBalance });
-
-    // Record withdrawal transaction
-    const txId = 'tx-w-' + Date.now();
-    await db.createTransaction({
-      id: txId,
-      userId: req.user.id,
-      userEmail: req.user.email,
-      type: 'withdrawal',
-      amount: withdrawAmount,
-      bankDetails: {
-        bankName: settings.bankDetails.bankName,
-        accountNumber: '••••' + settings.bankDetails.accountNumber.slice(-4),
-        holderName: settings.bankDetails.holderName
-      },
-      timestamp: new Date()
-    });
-
-    // Log telemetry
-    await db.logTelemetry({
-      userId: req.user.id,
-      userEmail: req.user.email,
-      eventType: 'withdrawal',
-      metadata: { amount: withdrawAmount, bankName: settings.bankDetails.bankName },
-      timestamp: new Date()
-    });
-
-    res.json({ message: 'Withdrawal processed successfully', balance: nextBalance });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Server error' });
-  }
-});
 
 // Serve static files from the React app build if dist exists
 const DIST_PATH = path.join(__dirname, 'dist');

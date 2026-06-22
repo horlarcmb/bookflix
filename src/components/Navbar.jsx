@@ -110,9 +110,6 @@ export default function Navbar({ onNotificationToggle, notificationCount }) {
                   <Link to="/library" onClick={() => setUserMenuOpen(false)} className="btn btn-ghost" style={{ width: '100%', justifyContent: 'flex-start', padding: '8px 12px' }}>
                     <FiBookOpen /> My Library
                   </Link>
-                  <Link to="/subscribe" onClick={() => setUserMenuOpen(false)} className="btn btn-ghost" style={{ width: '100%', justifyContent: 'flex-start', padding: '8px 12px' }}>
-                    <FiCreditCard /> Subscription
-                  </Link>
                   <Link to="/admin" onClick={() => setUserMenuOpen(false)} className="btn btn-ghost" style={{ width: '100%', justifyContent: 'flex-start', padding: '8px 12px' }}>
                     <FiSettings /> Admin
                   </Link>

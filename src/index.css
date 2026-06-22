@@ -561,9 +561,18 @@ ul, ol { list-style: none; }
 
 /* === Content Row (Netflix-style) === */
 .content-section {
-  padding: var(--space-lg) 0;
+  padding: var(--space-xl) 0;
   position: relative;
 }
+
+.homepage-rows {
+  position: relative;
+  z-index: 5;
+  margin-top: -50px;
+  padding-top: 10px;
+  background: linear-gradient(to bottom, transparent, var(--bg-primary) 50px);
+}
+
 
 .content-section-header {
   display: flex;

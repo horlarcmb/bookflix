@@ -5,13 +5,45 @@
     "email": "rahmanridwanidowu@gmail.com",
     "passwordHash": "$2b$10$3i66lgs6OC4xxVfNImKX3.7dgsKr9dk.EoEGODBgrNRfcUdpT5AN.",
     "favoriteGenres": [],
-    "readingList": [],
-    "readHistory": {},
+    "readingList": [
+      1342
+    ],
+    "readHistory": {
+      "98": {
+        "chapter": 2,
+        "progress": 0,
+        "updatedAt": "2026-06-20T18:50:04.782Z"
+      },
+      "1342": {
+        "chapter": 1,
+        "progress": 7,
+        "updatedAt": "2026-06-20T18:51:00.859Z"
+      }
+    },
     "ratings": {},
     "joinedDate": "2026-06-19",
     "theme": "dark",
     "isAdmin": true,
     "premium": true,
     "planId": "premium"
+  },
+  {
+    "id": "1781998371534",
+    "name": "Test User",
+    "email": "testuser@example.com",
+    "passwordHash": "$2b$10$6TIeyAbR9LVw0PT4Xm5mJeJYhiT9mmvkWUl.ONj/IIct.kr0SGtDK",
+    "favoriteGenres": [
+      "Fiction",
+      "Sci-Fi",
+      "Fantasy"
+    ],
+    "readingList": [],
+    "readHistory": {},
+    "ratings": {},
+    "joinedDate": "2026-06-20",
+    "theme": "dark",
+    "isAdmin": false,
+    "premium": false,
+    "planId": "free"
   }
 ]

@@ -62,6 +62,28 @@ export function BookProvider({ children }) {
     return data;
   };
 
+  const updateBook = async (id, metadata, content) => {
+    const numericId = parseInt(id);
+    const res = await fetch(`/api/books/${numericId}`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ metadata, content })
+    });
+    
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.message || 'Failed to update content on server.');
+    }
+    
+    // Update in catalog state
+    setCatalog(prev => {
+      const filtered = prev.filter(b => b.id !== numericId);
+      return [...filtered, data];
+    });
+    
+    return data;
+  };
+
   const deleteBook = async (id) => {
     const numericId = parseInt(id);
     const res = await fetch(`/api/books/${numericId}`, {
@@ -144,6 +166,7 @@ export function BookProvider({ children }) {
     catalog,
     loading,
     uploadBook,
+    updateBook,
     deleteBook,
     getBookById,
     searchBooks,

@@ -84,11 +84,7 @@ export default function ProfilePage() {
               )}
               
               <div style={{ display: 'flex', gap: 'var(--space-md)', marginTop: 'var(--space-sm)' }}>
-                {user.premium ? (
-                  <span className="badge badge-premium"><FaCrown /> Premium Member</span>
-                ) : (
-                  <span className="badge badge-type">Standard Plan</span>
-                )}
+                <span className="badge badge-type">Standard Plan</span>
                 <span className="badge badge-type">Joined {user.joinedDate}</span>
               </div>
             </div>

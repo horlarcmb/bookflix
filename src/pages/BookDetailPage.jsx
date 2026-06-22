@@ -135,7 +135,6 @@ export default function BookDetailPage() {
               <span className="book-detail-meta-item">
                 <span className={`badge ${book.status === 'Completed' ? 'badge-new' : 'badge-type'}`}>{book.status}</span>
               </span>
-              {book.premium && <span className="badge badge-premium"><FaCrown /> Premium</span>}
             </div>
             <div className="book-detail-tags">
               {book.genre.map(g => <span key={g} className="tag">{g}</span>)}

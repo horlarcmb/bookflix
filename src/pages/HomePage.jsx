@@ -87,17 +87,19 @@ export default function HomePage() {
         <>
           <HeroBanner />
           
-          {/* Dynamic contents */}
-          <ContentRow title="Trending Now" icon={<FaFire />} books={getTrendingBooks()} seeAllLink="/browse?sort=trending" />
-          <ContentRow title="Continue Reading" icon={<FiClock />} books={books.slice(0, 5)} />
-          <ContentRow title="Recommended for You" icon={<FaStar />} books={personalRecs} seeAllLink="/browse" />
-          <ContentRow title="New Releases" icon={<FiBookOpen />} books={getNewReleases()} seeAllLink="/browse?sort=newest" />
-          <ContentRow title="Top Manga & Manhwa" icon={<FiLayers />} books={getTopManga()} seeAllLink="/browse?type=Manga" />
-          
-          {/* Category based */}
-          <ContentRow title="Because You Like Fantasy" icon={<FiAward />} books={fantasyRecs} />
-          <ContentRow title="Highest Rated" icon={<FiStar />} books={getTopRated()} seeAllLink="/browse?sort=rating" />
-          <ContentRow title="Because You Like Sci-Fi" icon={<FiCompass />} books={scifiRecs} />
+          <div className="homepage-rows">
+            {/* Dynamic contents */}
+            <ContentRow title="Trending Now" icon={<FaFire />} books={getTrendingBooks()} seeAllLink="/browse?sort=trending" />
+            <ContentRow title="Continue Reading" icon={<FiClock />} books={books.slice(0, 5)} />
+            <ContentRow title="Recommended for You" icon={<FaStar />} books={personalRecs} seeAllLink="/browse" />
+            <ContentRow title="New Releases" icon={<FiBookOpen />} books={getNewReleases()} seeAllLink="/browse?sort=newest" />
+            <ContentRow title="Top Manga & Manhwa" icon={<FiLayers />} books={getTopManga()} seeAllLink="/browse?type=Manga" />
+            
+            {/* Category based */}
+            <ContentRow title="Because You Like Fantasy" icon={<FiAward />} books={fantasyRecs} />
+            <ContentRow title="Highest Rated" icon={<FiStar />} books={getTopRated()} seeAllLink="/browse?sort=rating" />
+            <ContentRow title="Because You Like Sci-Fi" icon={<FiCompass />} books={scifiRecs} />
+          </div>
         </>
       )}
 
