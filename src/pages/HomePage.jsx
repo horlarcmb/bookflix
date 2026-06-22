@@ -18,7 +18,8 @@ export default function HomePage() {
     getTrendingBooks,
     getNewReleases,
     getTopManga,
-    getTopRated
+    getTopRated,
+    getFeaturedBooks
   } = useBook();
 
   if (!user) {
@@ -69,8 +70,11 @@ export default function HomePage() {
     { name: 'AI-Generated', gradient: 'linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%)' }
   ];
 
+  const featured = getFeaturedBooks().slice(0, 5);
+  const hasFeatured = featured.length > 0;
+
   return (
-    <div>
+    <div className={!hasFeatured ? "page-content" : ""}>
       {books.length === 0 ? (
         <div className="container" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 'var(--space-2xl) var(--space-md)', textAlign: 'center', borderBottom: '1px solid var(--border)' }}>
           <div style={{ fontSize: '4rem', marginBottom: 'var(--space-md)' }}>📚</div>
@@ -87,7 +91,7 @@ export default function HomePage() {
         <>
           <HeroBanner />
           
-          <div className="homepage-rows">
+          <div className="homepage-rows" style={{ marginTop: !hasFeatured ? '0px' : undefined }}>
             {/* Dynamic contents */}
             <ContentRow title="Trending Now" icon={<FaFire />} books={getTrendingBooks()} seeAllLink="/browse?sort=trending" />
             <ContentRow title="Continue Reading" icon={<FiClock />} books={books.slice(0, 5)} />

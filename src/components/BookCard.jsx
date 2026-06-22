@@ -9,9 +9,10 @@ export default function BookCard({ book, showInfo = true }) {
   const navigate = useNavigate();
   const { user, toggleSaveBook } = useAuth();
 
-  const isSaved = user?.readingList?.includes(book.id) || false;
+  const isSaved = (user?.readingList && book?.id) ? user.readingList.includes(book.id) : false;
 
   const isNew = () => {
+    if (!book || !book.dateAdded) return false;
     const added = new Date(book.dateAdded);
     const monthAgo = new Date();
     monthAgo.setMonth(monthAgo.getMonth() - 2);

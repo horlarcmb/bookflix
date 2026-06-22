@@ -106,13 +106,16 @@ export function BookProvider({ children }) {
   };
 
   const searchBooks = (query) => {
+    if (!query) return catalog;
     const q = query.toLowerCase();
     return catalog.filter(b =>
-      b.title.toLowerCase().includes(q) ||
-      b.author.toLowerCase().includes(q) ||
-      b.genre.some(g => g.toLowerCase().includes(q)) ||
-      b.tags.some(t => t.toLowerCase().includes(q)) ||
-      b.type.toLowerCase().includes(q)
+      b && (
+        (b.title && typeof b.title === 'string' && b.title.toLowerCase().includes(q)) ||
+        (b.author && typeof b.author === 'string' && b.author.toLowerCase().includes(q)) ||
+        (b.genre && Array.isArray(b.genre) && b.genre.some(g => g && typeof g === 'string' && g.toLowerCase().includes(q))) ||
+        (b.tags && Array.isArray(b.tags) && b.tags.some(t => t && typeof t === 'string' && t.toLowerCase().includes(q))) ||
+        (b.type && typeof b.type === 'string' && b.type.toLowerCase().includes(q))
+      )
     );
   };
 

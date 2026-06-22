@@ -29,8 +29,8 @@ export default function ContentRow({ title, icon, books, seeAllLink }) {
           <FiChevronLeft />
         </button>
         <div className="content-row" ref={scrollRef}>
-          {books.map(book => (
-            <BookCard key={book.id} book={book} />
+          {Array.isArray(books) && books.filter(Boolean).map(book => (
+            <BookCard key={book.id || Math.random()} book={book} />
           ))}
         </div>
         <button className="content-row-arrow right" onClick={() => scroll('right')}>

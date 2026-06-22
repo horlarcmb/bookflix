@@ -38,39 +38,40 @@ export default function BrowsePage() {
   }, [location.search]);
 
   useEffect(() => {
-    let result = [...books];
+    let result = Array.isArray(books) ? books.filter(Boolean) : [];
 
     if (query) {
-      result = searchBooks(query);
+      result = typeof searchBooks === 'function' ? searchBooks(query) : [];
+      if (!Array.isArray(result)) result = [];
     }
     
     if (activeGenre) {
       if (activeGenre === 'AI-Generated') {
-        result = result.filter(b => b.isAIGenerated);
+        result = result.filter(b => b && b.isAIGenerated);
       } else {
-        result = result.filter(b => b.genre.includes(activeGenre));
+        result = result.filter(b => b && Array.isArray(b.genre) && b.genre.includes(activeGenre));
       }
     }
     
     if (activeType) {
-      result = result.filter(b => b.type === activeType);
+      result = result.filter(b => b && b.type === activeType);
     }
 
     switch (sortBy) {
       case 'rating': 
-        result.sort((a, b) => b.rating - a.rating); 
+        result.sort((a, b) => (b.rating || 0) - (a.rating || 0)); 
         break;
       case 'newest': 
-        result.sort((a, b) => new Date(b.dateAdded) - new Date(a.dateAdded)); 
+        result.sort((a, b) => new Date(b.dateAdded || 0) - new Date(a.dateAdded || 0)); 
         break;
       case 'trending': 
-        result.sort((a, b) => b.readCount - a.readCount); 
+        result.sort((a, b) => (b.readCount || 0) - (a.readCount || 0)); 
         break;
       case 'az': 
-        result.sort((a, b) => a.title.localeCompare(b.title)); 
+        result.sort((a, b) => (a.title || '').localeCompare(b.title || '')); 
         break;
       default: 
-        result.sort((a, b) => b.readCount - a.readCount);
+        result.sort((a, b) => (b.readCount || 0) - (a.readCount || 0));
     }
 
     setFilteredBooks(result);
@@ -183,8 +184,8 @@ export default function BrowsePage() {
                 </div>
               ) : (
                 <div className={viewMode === 'grid' ? "library-grid" : "library-list-view"} style={{ display: viewMode === 'list' ? 'flex' : undefined, flexDirection: viewMode === 'list' ? 'column' : undefined, gap: viewMode === 'list' ? '12px' : undefined }}>
-                  {filteredBooks.map(book => (
-                    <BookCard key={book.id} book={book} showInfo={viewMode === 'grid'} />
+                  {Array.isArray(filteredBooks) && filteredBooks.filter(Boolean).map(book => (
+                    <BookCard key={book.id || Math.random()} book={book} showInfo={viewMode === 'grid'} />
                   ))}
                 </div>
               )}
