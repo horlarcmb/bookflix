@@ -164,7 +164,7 @@ export default function PanelReader({ book }) {
           <button className="btn btn-ghost btn-sm" onClick={() => navigate(`/book/${book.id}`)}>
             <FiChevronLeft /> Info
           </button>
-          <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>{book.title} — Ch. {currentChapter}</span>
+          <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>{book.title} — Ch. {currentChapter} {pages[currentPage - 1]?.title ? `(${pages[currentPage - 1].title})` : ''}</span>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
@@ -238,11 +238,18 @@ export default function PanelReader({ book }) {
               <div key={i} style={{ width: '100%' }}>
                 {page.imageBase64 ? (
                   // Custom uploaded page image
-                  <img 
-                    src={page.imageBase64} 
-                    alt={`Page ${i + 1}`} 
-                    style={{ width: '100%', height: 'auto', display: 'block', border: '2px solid #222', borderRadius: '4px', boxShadow: '0 8px 20px rgba(0,0,0,0.8)' }} 
-                  />
+                  <div style={{ position: 'relative', width: '100%' }}>
+                    {page.title && (
+                      <div style={{ position: 'absolute', top: '10px', left: '10px', background: 'rgba(0,0,0,0.75)', color: '#fff', border: '1px solid #333', padding: '4px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 600, zIndex: 10 }}>
+                        {page.title}
+                      </div>
+                    )}
+                    <img 
+                      src={page.imageBase64} 
+                      alt={page.title || `Page ${i + 1}`} 
+                      style={{ width: '100%', height: 'auto', display: 'block', border: '2px solid #222', borderRadius: '4px', boxShadow: '0 8px 20px rgba(0,0,0,0.8)' }} 
+                    />
+                  </div>
                 ) : (
                   // Fallback Mock Drawing layout
                   <div 

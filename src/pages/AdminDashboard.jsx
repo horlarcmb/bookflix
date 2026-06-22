@@ -82,10 +82,20 @@ export default function AdminDashboard() {
             });
             
             const loaded = Object.keys(chaptersMap).sort((a, b) => Number(a) - Number(b)).map((chNum, idx) => {
-              const pages = chaptersMap[chNum].sort((pa, pb) => pa.pageNumber - pb.pageNumber);
+              const pages = chaptersMap[chNum].sort((pa, pb) => pa.pageNumber - pb.pageNumber).map(p => ({
+                pageNumber: p.pageNumber,
+                title: p.title || `Page ${p.pageNumber}`,
+                imageBase64: p.imageBase64 || '',
+                dialogue: p.dialogue || '',
+                description: p.description || '',
+                chapterNumber: p.chapterNumber || 1
+              }));
+              const chapterTitle = (content.chapters && content.chapters[idx])
+                ? content.chapters[idx].title
+                : `Chapter ${chNum}`;
               return {
                 id: idx + 1,
-                title: `Chapter ${chNum}`,
+                title: chapterTitle,
                 content: '',
                 pages: pages
               };
@@ -139,7 +149,70 @@ export default function AdminDashboard() {
     reader.readAsText(file);
   };
 
-  const handleChapterImagesChange = async (index, e) => {
+  const handleAddPage = (chIdx) => {
+    setFormChapters(prev => prev.map((ch, idx) => {
+      if (idx === chIdx) {
+        const pages = ch.pages || [];
+        return {
+          ...ch,
+          pages: [
+            ...pages,
+            {
+              pageNumber: pages.length + 1,
+              title: `Page ${pages.length + 1}`,
+              imageBase64: '',
+              dialogue: '',
+              description: ''
+            }
+          ]
+        };
+      }
+      return ch;
+    }));
+  };
+
+  const handleRemovePage = (chIdx, pIdx) => {
+    setFormChapters(prev => prev.map((ch, idx) => {
+      if (idx === chIdx) {
+        const pages = ch.pages || [];
+        const filtered = pages.filter((_, pindex) => pindex !== pIdx);
+        const reindexed = filtered.map((p, pindex) => ({
+          ...p,
+          pageNumber: pindex + 1
+        }));
+        return { ...ch, pages: reindexed };
+      }
+      return ch;
+    }));
+  };
+
+  const handleUpdatePage = (chIdx, pIdx, field, value) => {
+    setFormChapters(prev => prev.map((ch, idx) => {
+      if (idx === chIdx) {
+        const pages = ch.pages || [];
+        const updatedPages = pages.map((p, pindex) => {
+          if (pindex === pIdx) {
+            return { ...p, [field]: value };
+          }
+          return p;
+        });
+        return { ...ch, pages: updatedPages };
+      }
+      return ch;
+    }));
+  };
+
+  const handlePageFileChange = (chIdx, pIdx, e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      handleUpdatePage(chIdx, pIdx, 'imageBase64', reader.result);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleBulkPageUpload = async (chIdx, e) => {
     const files = Array.from(e.target.files);
     if (files.length === 0) return;
     
@@ -150,11 +223,13 @@ export default function AdminDashboard() {
         return new Promise((resolve, reject) => {
           const reader = new FileReader();
           reader.onloadend = () => {
+            const filename = file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
             resolve({
               pageNumber: idx + 1,
+              title: filename,
               imageBase64: reader.result,
-              dialogue: `Page ${idx + 1} Dialogue`,
-              description: `Story scenes on page ${idx + 1}`
+              dialogue: `Dialogue for page`,
+              description: `Story scenes`
             });
           };
           reader.onerror = () => reject(new Error('Failed to read image'));
@@ -162,8 +237,18 @@ export default function AdminDashboard() {
         });
       });
       
-      const pages = await Promise.all(pagePromises);
-      handleUpdateChapter(index, 'pages', pages);
+      const newPages = await Promise.all(pagePromises);
+      setFormChapters(prev => prev.map((ch, idx) => {
+        if (idx === chIdx) {
+          const existingPages = ch.pages || [];
+          const combinedPages = [...existingPages, ...newPages].map((p, pIdx) => ({
+            ...p,
+            pageNumber: pIdx + 1
+          }));
+          return { ...ch, pages: combinedPages };
+        }
+        return ch;
+      }));
     } catch (err) {
       console.error(err);
       alert('Error converting chapter images.');
@@ -334,12 +419,17 @@ export default function AdminDashboard() {
           }))
         }
       : {
+          chapters: formChapters.map(ch => ({
+            title: ch.title,
+            content: ''
+          })),
           pages: formChapters.reduce((acc, ch, chIdx) => {
             const chapterNumber = chIdx + 1;
             const pages = ch.pages || [];
             pages.forEach((p, pIdx) => {
               acc.push({
                 pageNumber: pIdx + 1,
+                title: p.title || `Page ${pIdx + 1}`,
                 imageBase64: p.imageBase64,
                 dialogue: p.dialogue || `Page ${pIdx + 1} Dialogue`,
                 description: p.description || `Story scenes on page ${pIdx + 1}`,
@@ -437,12 +527,17 @@ export default function AdminDashboard() {
           }))
         }
       : {
+          chapters: formChapters.map(ch => ({
+            title: ch.title,
+            content: ''
+          })),
           pages: formChapters.reduce((acc, ch, chIdx) => {
             const chapterNumber = chIdx + 1;
             const pages = ch.pages || [];
             pages.forEach((p, pIdx) => {
               acc.push({
                 pageNumber: pIdx + 1,
+                title: p.title || `Page ${pIdx + 1}`,
                 imageBase64: p.imageBase64,
                 dialogue: p.dialogue || `Page ${pIdx + 1} Dialogue`,
                 description: p.description || `Story scenes on page ${pIdx + 1}`,
@@ -990,20 +1085,91 @@ export default function AdminDashboard() {
                                 </div>
                               </div>
                             ) : (
-                              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                <input 
-                                  type="file" 
-                                  accept="image/*" 
-                                  multiple 
-                                  onChange={(e) => handleChapterImagesChange(index, e)}
-                                  required={!chapter.pages || chapter.pages.length === 0}
-                                  style={{ fontSize: '0.8rem', background: 'var(--bg-primary)', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', padding: '6px' }}
-                                />
-                                {chapter.pages && chapter.pages.length > 0 && (
-                                  <span style={{ fontSize: '0.8rem', color: 'var(--success)' }}>
-                                    ✓ {chapter.pages.length} pages loaded for this chapter
-                                  </span>
-                                )}
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                <div style={{ display: 'flex', gap: '10px', alignItems: 'center', background: 'var(--bg-primary)', border: '1px dashed var(--border)', padding: '10px', borderRadius: 'var(--radius-sm)' }}>
+                                  <label style={{ cursor: 'pointer', fontSize: '0.85rem', color: 'var(--accent)', display: 'flex', alignItems: 'center', gap: '6px', margin: 0 }}>
+                                    <FiUpload /> Bulk Upload Page Images
+                                    <input 
+                                      type="file" 
+                                      accept="image/*" 
+                                      multiple 
+                                      onChange={(e) => handleBulkPageUpload(index, e)} 
+                                      style={{ display: 'none' }} 
+                                    />
+                                  </label>
+                                  <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>(sequential naming)</span>
+                                </div>
+
+                                {/* Page List */}
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '4px', maxHeight: '300px', overflowY: 'auto', paddingRight: '4px' }}>
+                                  {chapter.pages && chapter.pages.map((page, pIdx) => (
+                                    <div 
+                                      key={pIdx} 
+                                      style={{ 
+                                        display: 'grid', 
+                                        gridTemplateColumns: '60px 1.2fr 1.2fr auto', 
+                                        gap: '8px', 
+                                        alignItems: 'center', 
+                                        background: 'rgba(255,255,255,0.02)', 
+                                        border: '1px solid var(--border)', 
+                                        padding: '8px', 
+                                        borderRadius: 'var(--radius-sm)' 
+                                      }}
+                                    >
+                                      {/* Thumbnail */}
+                                      <div style={{ width: '45px', height: '60px', borderRadius: '4px', overflow: 'hidden', background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #333' }}>
+                                        {page.imageBase64 ? (
+                                          <img src={page.imageBase64} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                        ) : (
+                                          <span style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)' }}>No Image</span>
+                                        )}
+                                      </div>
+
+                                      {/* Page Naming Column */}
+                                      <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                        <span style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', fontWeight: 600 }}>Page Title</span>
+                                        <input 
+                                          type="text" 
+                                          placeholder="Page Title" 
+                                          value={page.title || ''} 
+                                          onChange={(e) => handleUpdatePage(index, pIdx, 'title', e.target.value)} 
+                                          required
+                                          style={{ width: '100%', padding: '4px 8px', background: 'var(--bg-primary)', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', color: '#fff', fontSize: '0.8rem' }} 
+                                        />
+                                      </div>
+
+                                      {/* Page Upload Column */}
+                                      <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                        <span style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', fontWeight: 600 }}>Upload Image</span>
+                                        <input 
+                                          type="file" 
+                                          accept="image/*" 
+                                          onChange={(e) => handlePageFileChange(index, pIdx, e)} 
+                                          required={!page.imageBase64}
+                                          style={{ fontSize: '0.75rem', width: '100%', background: 'transparent', border: 'none', padding: 0 }} 
+                                        />
+                                      </div>
+
+                                      {/* Remove Button */}
+                                      <button 
+                                        type="button" 
+                                        onClick={() => handleRemovePage(index, pIdx)} 
+                                        style={{ background: 'transparent', border: 'none', color: 'var(--error)', cursor: 'pointer', padding: '6px' }}
+                                      >
+                                        <FiTrash2 />
+                                      </button>
+                                    </div>
+                                  ))}
+                                </div>
+
+                                <button 
+                                  type="button" 
+                                  className="btn btn-outline btn-sm" 
+                                  onClick={() => handleAddPage(index)} 
+                                  style={{ fontSize: '0.8rem', padding: '4px 10px', width: 'fit-content' }}
+                                >
+                                  + Add Page
+                                </button>
                               </div>
                             )}
                           </div>
@@ -1272,20 +1438,91 @@ export default function AdminDashboard() {
                                 </div>
                               </div>
                             ) : (
-                              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                <input 
-                                  type="file" 
-                                  accept="image/*" 
-                                  multiple 
-                                  onChange={(e) => handleChapterImagesChange(index, e)}
-                                  required={!chapter.pages || chapter.pages.length === 0}
-                                  style={{ fontSize: '0.8rem', background: 'var(--bg-primary)', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', padding: '6px' }}
-                                />
-                                {chapter.pages && chapter.pages.length > 0 && (
-                                  <span style={{ fontSize: '0.8rem', color: 'var(--success)' }}>
-                                    ✓ {chapter.pages.length} pages loaded for this chapter
-                                  </span>
-                                )}
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                <div style={{ display: 'flex', gap: '10px', alignItems: 'center', background: 'var(--bg-primary)', border: '1px dashed var(--border)', padding: '10px', borderRadius: 'var(--radius-sm)' }}>
+                                  <label style={{ cursor: 'pointer', fontSize: '0.85rem', color: 'var(--accent)', display: 'flex', alignItems: 'center', gap: '6px', margin: 0 }}>
+                                    <FiUpload /> Bulk Upload Page Images
+                                    <input 
+                                      type="file" 
+                                      accept="image/*" 
+                                      multiple 
+                                      onChange={(e) => handleBulkPageUpload(index, e)} 
+                                      style={{ display: 'none' }} 
+                                    />
+                                  </label>
+                                  <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>(sequential naming)</span>
+                                </div>
+
+                                {/* Page List */}
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '4px', maxHeight: '300px', overflowY: 'auto', paddingRight: '4px' }}>
+                                  {chapter.pages && chapter.pages.map((page, pIdx) => (
+                                    <div 
+                                      key={pIdx} 
+                                      style={{ 
+                                        display: 'grid', 
+                                        gridTemplateColumns: '60px 1.2fr 1.2fr auto', 
+                                        gap: '8px', 
+                                        alignItems: 'center', 
+                                        background: 'rgba(255,255,255,0.02)', 
+                                        border: '1px solid var(--border)', 
+                                        padding: '8px', 
+                                        borderRadius: 'var(--radius-sm)' 
+                                      }}
+                                    >
+                                      {/* Thumbnail */}
+                                      <div style={{ width: '45px', height: '60px', borderRadius: '4px', overflow: 'hidden', background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #333' }}>
+                                        {page.imageBase64 ? (
+                                          <img src={page.imageBase64} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                        ) : (
+                                          <span style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)' }}>No Image</span>
+                                        )}
+                                      </div>
+
+                                      {/* Page Naming Column */}
+                                      <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                        <span style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', fontWeight: 600 }}>Page Title</span>
+                                        <input 
+                                          type="text" 
+                                          placeholder="Page Title" 
+                                          value={page.title || ''} 
+                                          onChange={(e) => handleUpdatePage(index, pIdx, 'title', e.target.value)} 
+                                          required
+                                          style={{ width: '100%', padding: '4px 8px', background: 'var(--bg-primary)', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', color: '#fff', fontSize: '0.8rem' }} 
+                                        />
+                                      </div>
+
+                                      {/* Page Upload Column */}
+                                      <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                        <span style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)', fontWeight: 600 }}>Upload Image</span>
+                                        <input 
+                                          type="file" 
+                                          accept="image/*" 
+                                          onChange={(e) => handlePageFileChange(index, pIdx, e)} 
+                                          required={!page.imageBase64}
+                                          style={{ fontSize: '0.75rem', width: '100%', background: 'transparent', border: 'none', padding: 0 }} 
+                                        />
+                                      </div>
+
+                                      {/* Remove Button */}
+                                      <button 
+                                        type="button" 
+                                        onClick={() => handleRemovePage(index, pIdx)} 
+                                        style={{ background: 'transparent', border: 'none', color: 'var(--error)', cursor: 'pointer', padding: '6px' }}
+                                      >
+                                        <FiTrash2 />
+                                      </button>
+                                    </div>
+                                  ))}
+                                </div>
+
+                                <button 
+                                  type="button" 
+                                  className="btn btn-outline btn-sm" 
+                                  onClick={() => handleAddPage(index)} 
+                                  style={{ fontSize: '0.8rem', padding: '4px 10px', width: 'fit-content' }}
+                                >
+                                  + Add Page
+                                </button>
                               </div>
                             )}
                           </div>

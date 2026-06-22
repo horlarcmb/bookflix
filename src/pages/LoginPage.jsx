@@ -151,25 +151,29 @@ export default function LoginPage() {
               }}
             />
             
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9, y: 30 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 30 }}
-              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              style={{
-                position: 'fixed',
-                top: '50%',
-                left: '50%',
-                transform: 'translate(-50%, -50%)',
-                width: '95%',
-                maxWidth: '460px',
-                background: 'rgba(20, 20, 20, 0.85)',
-                border: '1px solid var(--border)',
-                borderRadius: 'var(--radius-xl)',
-                padding: 'var(--space-2xl)',
-                zIndex: 10000,
-                boxShadow: 'var(--shadow-xl), 0 0 30px rgba(229, 9, 20, 0.1)',
-                backdropFilter: 'blur(20px)',
+            <div style={{
+              position: 'fixed',
+              inset: 0,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 10000,
+              padding: 'var(--space-md)'
+            }}>
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9, y: 30 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.9, y: 30 }}
+                transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+                style={{
+                  width: '95%',
+                  maxWidth: '460px',
+                  background: 'rgba(20, 20, 20, 0.85)',
+                  border: '1px solid var(--border)',
+                  borderRadius: 'var(--radius-xl)',
+                  padding: 'var(--space-2xl)',
+                  boxShadow: 'var(--shadow-xl), 0 0 30px rgba(229, 9, 20, 0.1)',
+                  backdropFilter: 'blur(20px)',
                 textAlign: 'left'
               }}
             >
@@ -299,7 +303,8 @@ export default function LoginPage() {
                   </>
                 ) : 'Enter BookFlix'}
               </button>
-            </motion.div>
+              </motion.div>
+            </div>
           </>
         )}
       </AnimatePresence>

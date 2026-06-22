@@ -30,6 +30,7 @@ export function BookProvider({ children }) {
         if (res.ok) {
           const booksList = await res.json();
           setCatalog(booksList);
+          catalogContainer.books = booksList;
         } else {
           console.error('Failed to load books catalog from server');
         }
@@ -57,7 +58,9 @@ export function BookProvider({ children }) {
     // Add to catalog state
     setCatalog(prev => {
       const filtered = prev.filter(b => b.id !== metadata.id);
-      return [...filtered, data];
+      const updated = [...filtered, data];
+      catalogContainer.books = updated;
+      return updated;
     });
     
     return data;
@@ -79,7 +82,9 @@ export function BookProvider({ children }) {
     // Update in catalog state
     setCatalog(prev => {
       const filtered = prev.filter(b => b.id !== numericId);
-      return [...filtered, data];
+      const updated = [...filtered, data];
+      catalogContainer.books = updated;
+      return updated;
     });
     
     return data;
@@ -98,7 +103,11 @@ export function BookProvider({ children }) {
     }
     
     // Remove from catalog state
-    setCatalog(prev => prev.filter(b => b.id !== numericId));
+    setCatalog(prev => {
+      const updated = prev.filter(b => b.id !== numericId);
+      catalogContainer.books = updated;
+      return updated;
+    });
   };
 
   const getBookById = (id) => {

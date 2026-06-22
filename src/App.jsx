@@ -4,7 +4,7 @@ import { AnimatePresence } from 'framer-motion';
 
 // Context
 import { AuthProvider, useAuth } from './context/AuthContext';
-import { BookProvider } from './context/BookContext';
+import { BookProvider, useBook } from './context/BookContext';
 
 // Components
 import Navbar from './components/Navbar';
@@ -49,8 +49,69 @@ function AdminRoute({ children }) {
 
 function AppLayout() {
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [notifications, setNotifications] = useState([
+    { id: 1, type: 'release', title: 'New Chapter Available', message: 'Dragon Ascent Chapter 257 is now available!', time: '2 min ago', unread: true, icon: '📖', color: 'rgba(229,9,20,0.2)' },
+    { id: 2, type: 'recommendation', title: 'Recommended for You', message: 'Based on your reading history, try "The Frozen Crown"', time: '1 hour ago', unread: true, icon: '⭐', color: 'rgba(255,215,0,0.2)' },
+    { id: 3, type: 'release', title: 'New Release', message: '"Echoes of Eternity" by Amara Okafor just dropped!', time: '3 hours ago', unread: true, icon: '🆕', color: 'rgba(70,211,105,0.2)' },
+    { id: 4, type: 'subscription', title: 'Subscription Renewed', message: 'Your Standard plan has been renewed for $1/month', time: '1 day ago', unread: false, icon: '💳', color: 'rgba(79,172,254,0.2)' },
+    { id: 6, type: 'release', title: 'New Manga Chapter', message: 'Spirit Blade Chronicles Ch. 190 is here!', time: '3 days ago', unread: false, icon: '📖', color: 'rgba(229,9,20,0.2)' },
+  ]);
+
   const location = useLocation();
   const { user } = useAuth();
+  const { catalog: books } = useBook();
+
+  const notificationCount = notifications.filter(n => n.unread).length;
+
+  const handleMarkAllRead = () => {
+    setNotifications(prev => prev.map(n => ({ ...n, unread: false })));
+  };
+
+  // Simulate new incoming notifications periodically
+  useEffect(() => {
+    if (!user || books.length === 0) return;
+
+    const interval = setInterval(() => {
+      const randomBook = books[Math.floor(Math.random() * books.length)];
+      if (!randomBook) return;
+
+      const simulationTemplates = [
+        {
+          type: 'release',
+          title: 'Trending Classic',
+          message: `"${randomBook.title}" by ${randomBook.author} is trending now with ${randomBook.readCount.toLocaleString()} views!`,
+          icon: '🔥',
+          color: 'rgba(229,9,20,0.2)'
+        },
+        {
+          type: 'recommendation',
+          title: 'Top Recommendation',
+          message: `Recommended for you: Dive into the pages of "${randomBook.title}" (Rating: ${randomBook.rating} ★)`,
+          icon: '⭐',
+          color: 'rgba(255,215,0,0.2)'
+        },
+        {
+          type: 'release',
+          title: 'Polished Ebook Added',
+          message: `"${randomBook.title}" has been processed and is now available in the ${randomBook.genre[0]} category!`,
+          icon: '📚',
+          color: 'rgba(70,211,105,0.2)'
+        }
+      ];
+
+      const template = simulationTemplates[Math.floor(Math.random() * simulationTemplates.length)];
+      const newNotif = {
+        id: Date.now(),
+        ...template,
+        time: 'Just now',
+        unread: true
+      };
+
+      setNotifications(prev => [newNotif, ...prev.slice(0, 9)]);
+    }, 45000); // every 45 seconds
+
+    return () => clearInterval(interval);
+  }, [books, user]);
 
   // Hide navbar/footer on reader, authentication pages, and landing page (if unauthenticated)
   const hideChrome = location.pathname.startsWith('/read') ||
@@ -87,13 +148,15 @@ function AppLayout() {
       {!hideChrome && (
         <Navbar
           onNotificationToggle={() => setNotificationsOpen(!notificationsOpen)}
-          notificationCount={3}
+          notificationCount={notificationCount}
         />
       )}
 
       <NotificationPanel
         isOpen={notificationsOpen}
         onClose={() => setNotificationsOpen(false)}
+        notifications={notifications}
+        onMarkAllRead={handleMarkAllRead}
       />
 
       <AnimatePresence mode="wait">

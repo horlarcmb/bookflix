@@ -19,7 +19,8 @@ export default function HomePage() {
     getNewReleases,
     getTopManga,
     getTopRated,
-    getFeaturedBooks
+    getFeaturedBooks,
+    getBooksByGenre
   } = useBook();
 
   if (!user) {
@@ -56,6 +57,12 @@ export default function HomePage() {
 
   // New categories including Textbook, Research, School, and AI-Generated
   const genreCards = [
+    { name: 'Literature', gradient: 'linear-gradient(135deg, #e65c00 0%, #F9D423 100%)' },
+    { name: 'History', gradient: 'linear-gradient(135deg, #8A2387 0%, #E94057 50%, #F27121 100%)' },
+    { name: 'Science & Technology', gradient: 'linear-gradient(135deg, #11998e 0%, #38ef7d 100%)' },
+    { name: 'Social Sciences', gradient: 'linear-gradient(135deg, #3a7bd5 0%, #3a6073 100%)' },
+    { name: 'Arts & Culture', gradient: 'linear-gradient(135deg, #FF007F 0%, #7F00FF 100%)' },
+    { name: 'Religion & Philosophy', gradient: 'linear-gradient(135deg, #4e54c8 0%, #8f94fb 100%)' },
     { name: 'Fantasy', gradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' },
     { name: 'Sci-Fi', gradient: 'linear-gradient(135deg, #00d2ff 0%, #3a7bd5 100%)' },
     { name: 'Romance', gradient: 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)' },
@@ -98,6 +105,9 @@ export default function HomePage() {
             <ContentRow title="Recommended for You" icon={<FaStar />} books={personalRecs} seeAllLink="/browse" />
             <ContentRow title="New Releases" icon={<FiBookOpen />} books={getNewReleases()} seeAllLink="/browse?sort=newest" />
             <ContentRow title="Top Manga & Manhwa" icon={<FiLayers />} books={getTopManga()} seeAllLink="/browse?type=Manga" />
+            <ContentRow title="Gutenberg Literature" icon={<FiBookOpen />} books={getBooksByGenre('Literature')} seeAllLink="/browse?genre=Literature" />
+            <ContentRow title="Historical Archives" icon={<FiCompass />} books={getBooksByGenre('History')} seeAllLink="/browse?genre=History" />
+            <ContentRow title="Science & Discovery" icon={<FiStar />} books={getBooksByGenre('Science & Technology')} seeAllLink="/browse?genre=Science%20%26%20Technology" />
             
             {/* Category based */}
             <ContentRow title="Because You Like Fantasy" icon={<FiAward />} books={fantasyRecs} />

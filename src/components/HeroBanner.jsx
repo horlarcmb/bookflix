@@ -3,9 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { FiPlay, FiPlus } from 'react-icons/fi';
 import { FaFire } from 'react-icons/fa';
-import { getFeaturedBooks } from '../data/books';
+import { useBook } from '../context/BookContext';
 
 export default function HeroBanner() {
+  const { getFeaturedBooks } = useBook();
   const [activeSlide, setActiveSlide] = useState(0);
   const navigate = useNavigate();
   const featured = getFeaturedBooks().slice(0, 5);

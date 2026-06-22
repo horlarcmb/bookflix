@@ -6,7 +6,7 @@ import { GENRES } from '../data/books';
 
 export default function SignupPage() {
   const navigate = useNavigate();
-  const { signup } = useAuth();
+  const { signupRequest, signupVerify } = useAuth();
   
   const [step, setStep] = useState(1);
   const [name, setName] = useState('');
@@ -15,6 +15,8 @@ export default function SignupPage() {
   const [agree, setAgree] = useState(false);
 
   const [selectedGenres, setSelectedGenres] = useState([]);
+  const [otp, setOtp] = useState('');
+  const [receivedOtp, setReceivedOtp] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -75,12 +77,32 @@ export default function SignupPage() {
     setError('');
     setLoading(true);
     try {
-      await signup(name, email, password, selectedGenres, false);
+      const data = await signupRequest(name, email, password, selectedGenres, false);
+      if (data && data.code) {
+        setReceivedOtp(data.code);
+      }
+      setStep(3);
+    } catch (err) {
+      setError(err.message || 'Registration failed. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleOtpVerify = async (e) => {
+    e.preventDefault();
+    if (!otp.trim()) {
+      setError('Please enter the verification code.');
+      return;
+    }
+    setError('');
+    setLoading(true);
+    try {
+      await signupVerify(email, otp);
       setSyncStep(1);
       setShowExplanationModal(true);
     } catch (err) {
-      setError(err.message || 'Registration failed. Please try again.');
-      setStep(1); // Go back to first step to fix email/credentials if conflict
+      setError(err.message || 'OTP verification failed. Please check the code.');
     } finally {
       setLoading(false);
     }
@@ -95,12 +117,16 @@ export default function SignupPage() {
   return (
     <div className="auth-page" style={{ paddingTop: 0 }}>
       <div className="auth-bg" />
-      <motion.div 
-        className="auth-card" 
-        initial={{ opacity: 0, y: 30 }} 
-        animate={{ opacity: 1, y: 0 }} 
-        style={{ maxWidth: step === 2 ? 560 : 440 }}
-      >
+      <AnimatePresence>
+        {!showExplanationModal && (
+          <motion.div 
+            className="auth-card" 
+            initial={{ opacity: 0, y: 30 }} 
+            animate={{ opacity: 1, y: 0 }} 
+            exit={{ opacity: 0, y: -30, scale: 0.95 }}
+            transition={{ duration: 0.4 }}
+            style={{ maxWidth: (step === 2 || step === 3) ? 560 : 440 }}
+          >
         <Link to="/" className="navbar-logo" style={{ display: 'block', textAlign: 'center', marginBottom: 'var(--space-lg)' }}>
           BookFlix
         </Link>
@@ -119,7 +145,7 @@ export default function SignupPage() {
           </div>
         )}
 
-        {step === 1 ? (
+        {step === 1 && (
           <>
             <h1>Create Account</h1>
             <p className="subtitle">Start your unlimited reading journey</p>
@@ -173,7 +199,9 @@ export default function SignupPage() {
               Already have an account? <Link to="/login" style={{ color: 'var(--accent)', fontWeight: 600 }}>Sign In</Link>
             </p>
           </>
-        ) : (
+        )}
+
+        {step === 2 && (
           <>
             <h1>Pick Your Favorites</h1>
             <p className="subtitle">Select categories you enjoy (at least 3)</p>
@@ -195,18 +223,70 @@ export default function SignupPage() {
               onClick={handleSignup}
               disabled={selectedGenres.length < 3 || loading}
             >
-              {loading ? 'Creating Account...' : `Start Reading (${selectedGenres.length}/3 selected)`}
+              {loading ? 'Requesting Code...' : `Start Reading (${selectedGenres.length}/3 selected)`}
             </button>
             <button 
               className="btn btn-ghost"
               style={{ width: '100%', marginTop: '8px' }}
               onClick={() => { setStep(1); setError(''); }}
+              disabled={loading}
             >
               Back
             </button>
           </>
         )}
-      </motion.div>
+
+        {step === 3 && (
+          <>
+            <h1>Verify Your Email</h1>
+            <p className="subtitle" style={{ marginBottom: '16px' }}>We've generated a 6-digit verification code for <strong>{email}</strong></p>
+
+            {receivedOtp && (
+              <div style={{
+                background: 'rgba(70, 211, 105, 0.1)',
+                border: '1px dashed var(--success)',
+                padding: '12px',
+                borderRadius: 'var(--radius-md)',
+                color: 'var(--success)',
+                fontSize: '0.85rem',
+                marginBottom: '16px',
+                textAlign: 'center',
+                fontWeight: 600
+              }}>
+                🔑 Verification Code: {receivedOtp}
+              </div>
+            )}
+
+            <form className="auth-form" onSubmit={handleOtpVerify}>
+              <div className="form-group" style={{ marginBottom: '20px' }}>
+                <label>Enter 6-Digit Code</label>
+                <input 
+                  type="text" 
+                  maxLength="6"
+                  placeholder="123456" 
+                  value={otp} 
+                  onChange={e => setOtp(e.target.value)} 
+                  required 
+                  style={{ textAlign: 'center', letterSpacing: '8px', fontSize: '1.5rem', fontWeight: 'bold' }}
+                />
+              </div>
+              <button type="submit" className="btn btn-primary btn-lg" style={{ width: '100%' }} disabled={loading}>
+                {loading ? 'Verifying...' : 'Verify & Create Account'}
+              </button>
+            </form>
+            <button 
+              className="btn btn-ghost"
+              style={{ width: '100%', marginTop: '8px' }}
+              onClick={() => { setStep(2); setError(''); }}
+              disabled={loading}
+            >
+              Back
+            </button>
+          </>
+        )}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <AnimatePresence>
         {showExplanationModal && (
@@ -224,25 +304,29 @@ export default function SignupPage() {
               }}
             />
             
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9, y: 30 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 30 }}
-              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              style={{
-                position: 'fixed',
-                top: '50%',
-                left: '50%',
-                transform: 'translate(-50%, -50%)',
-                width: '95%',
-                maxWidth: '460px',
-                background: 'rgba(20, 20, 20, 0.85)',
-                border: '1px solid var(--border)',
-                borderRadius: 'var(--radius-xl)',
-                padding: 'var(--space-2xl)',
-                zIndex: 10000,
-                boxShadow: 'var(--shadow-xl), 0 0 30px rgba(229, 9, 20, 0.1)',
-                backdropFilter: 'blur(20px)',
+            <div style={{
+              position: 'fixed',
+              inset: 0,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 10000,
+              padding: 'var(--space-md)'
+            }}>
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9, y: 30 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.9, y: 30 }}
+                transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+                style={{
+                  width: '95%',
+                  maxWidth: '460px',
+                  background: 'rgba(20, 20, 20, 0.85)',
+                  border: '1px solid var(--border)',
+                  borderRadius: 'var(--radius-xl)',
+                  padding: 'var(--space-2xl)',
+                  boxShadow: 'var(--shadow-xl), 0 0 30px rgba(229, 9, 20, 0.1)',
+                  backdropFilter: 'blur(20px)',
                 textAlign: 'left'
               }}
             >
@@ -372,7 +456,8 @@ export default function SignupPage() {
                   </>
                 ) : 'Enter BookFlix'}
               </button>
-            </motion.div>
+              </motion.div>
+            </div>
           </>
         )}
       </AnimatePresence>

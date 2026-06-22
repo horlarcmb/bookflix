@@ -53,8 +53,8 @@ export function AuthProvider({ children }) {
     loadCurrentUser();
   }, []);
 
-  const signup = async (name, email, password, favoriteGenres = [], isAdmin = false) => {
-    const res = await fetch('/api/auth/signup', {
+  const signupRequest = async (name, email, password, favoriteGenres = [], isAdmin = false) => {
+    const res = await fetch('/api/auth/signup-request', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name, email, password, favoriteGenres, isAdmin })
@@ -62,13 +62,55 @@ export function AuthProvider({ children }) {
     
     const data = await res.json();
     if (!res.ok) {
-      throw new Error(data.message || 'Signup failed.');
+      throw new Error(data.message || 'Signup request failed.');
+    }
+    return data;
+  };
+
+  const signupVerify = async (email, code) => {
+    const res = await fetch('/api/auth/signup-verify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, code })
+    });
+    
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.message || 'Verification failed.');
     }
     
     localStorage.setItem('bookflix_token', data.token);
     localStorage.setItem('bookflix_currentUser', JSON.stringify(data.user));
     setUser(data.user);
     return data.user;
+  };
+
+  const forgotPasswordRequest = async (email) => {
+    const res = await fetch('/api/auth/reset-request', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email })
+    });
+    
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.message || 'Reset request failed.');
+    }
+    return data;
+  };
+
+  const forgotPasswordVerify = async (email, code, newPassword) => {
+    const res = await fetch('/api/auth/reset-verify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, code, newPassword })
+    });
+    
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.message || 'Reset verification failed.');
+    }
+    return data;
   };
 
   const login = async (email, password) => {
@@ -185,7 +227,10 @@ export function AuthProvider({ children }) {
     user,
     loading,
     login,
-    signup,
+    signupRequest,
+    signupVerify,
+    forgotPasswordRequest,
+    forgotPasswordVerify,
     logout,
     updateProfile,
     toggleSaveBook,

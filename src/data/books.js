@@ -4,7 +4,9 @@ export const GENRES = [
   'Fiction', 'Sci-Fi', 'Romance', 'Mystery', 'Horror', 'Self-Help',
   'Business', 'Fantasy', 'Adventure', 'Thriller', 'Drama', 'Historical',
   'Non-Fiction', 'Textbook', 'Research', 'School', 'Academic',
-  'Manga', 'Manhwa', 'Light Novel', 'AI-Generated'
+  'Manga', 'Manhwa', 'Light Novel', 'AI-Generated',
+  'Literature', 'History', 'Science & Technology', 'Social Sciences',
+  'Arts & Culture', 'Religion & Philosophy'
 ];
 
 export const CONTENT_TYPES = [

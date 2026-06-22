@@ -22,6 +22,14 @@ const CONTENTS_FILE = path.join(DATA_DIR, 'book_contents.json');
 const TELEMETRY_FILE = path.join(DATA_DIR, 'telemetry.json');
 
 // Ensure database files exist
+// Server-side OTP memory caches for verification
+const signupOTPMap = new Map(); // email -> { name, email, password, favoriteGenres, isAdmin, otp, expires }
+const resetOTPMap = new Map();  // email -> { otp, expires }
+
+const generateOTP = () => {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+};
+
 if (!fs.existsSync(DATA_DIR)) {
   fs.mkdirSync(DATA_DIR, { recursive: true });
 }
@@ -121,6 +129,7 @@ const BookContentSchema = new mongoose.Schema({
   }, { _id: false })] },
   pages: { type: [new mongoose.Schema({
     pageNumber: Number,
+    title: { type: String, default: null },
     imageBase64: String,
     dialogue: String,
     description: String,
@@ -415,9 +424,11 @@ const requireAdmin = (req, res, next) => {
 
 // --- AUTH ENDPOINTS ---
 
-// Signup
-app.post('/api/auth/signup', async (req, res) => {
-  const { name, email, password, favoriteGenres } = req.body;
+// --- OTP ENDPOINTS ---
+
+// Signup Request (OTP Generation)
+app.post('/api/auth/signup-request', async (req, res) => {
+  const { name, email, password, favoriteGenres, isAdmin } = req.body;
   if (!name || !email || !password) {
     return res.status(400).json({ message: 'Name, email and password are required' });
   }
@@ -443,28 +454,86 @@ app.post('/api/auth/signup', async (req, res) => {
       return res.status(400).json({ message: 'An account with this email already exists' });
     }
 
-    const salt = await bcrypt.genSalt(10);
-    const passwordHash = await bcrypt.hash(password, salt);
+    const otp = generateOTP();
+    const expires = Date.now() + 15 * 60 * 1000; // 15 mins
 
     const userIsAdmin = trimmedEmail === 'rahmanridwanidowu@gmail.com';
 
-    const newUser = {
-      id: Date.now().toString(),
+    signupOTPMap.set(trimmedEmail, {
       name: trimmedName,
       email: trimmedEmail,
-      passwordHash,
+      password,
       favoriteGenres: favoriteGenres || [],
+      isAdmin: isAdmin || userIsAdmin,
+      otp,
+      expires
+    });
+
+    console.log(`[VERIFICATION] Signup OTP generated for ${trimmedEmail}: ${otp}`);
+
+    res.status(200).json({ 
+      message: 'Verification code generated.', 
+      email: trimmedEmail,
+      code: otp 
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error during signup request' });
+  }
+});
+
+// Signup Verify
+app.post('/api/auth/signup-verify', async (req, res) => {
+  const { email, code } = req.body;
+  if (!email || !code) {
+    return res.status(400).json({ message: 'Email and verification code are required' });
+  }
+
+  const trimmedEmail = email.trim().toLowerCase();
+  const request = signupOTPMap.get(trimmedEmail);
+
+  if (!request) {
+    return res.status(400).json({ message: 'No pending registration request found for this email' });
+  }
+
+  if (request.otp !== code.trim()) {
+    return res.status(400).json({ message: 'Invalid verification code' });
+  }
+
+  if (Date.now() > request.expires) {
+    signupOTPMap.delete(trimmedEmail);
+    return res.status(400).json({ message: 'Verification code has expired. Please sign up again.' });
+  }
+
+  try {
+    const existingUser = await db.findUserByEmail(trimmedEmail);
+    if (existingUser) {
+      signupOTPMap.delete(trimmedEmail);
+      return res.status(400).json({ message: 'An account with this email already exists' });
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    const passwordHash = await bcrypt.hash(request.password, salt);
+
+    const newUser = {
+      id: Date.now().toString(),
+      name: request.name,
+      email: request.email,
+      passwordHash,
+      favoriteGenres: request.favoriteGenres,
       readingList: [],
       readHistory: {},
       ratings: {},
       joinedDate: new Date().toISOString().split('T')[0],
       theme: 'dark',
-      isAdmin: userIsAdmin,
-      premium: userIsAdmin,
-      planId: userIsAdmin ? 'premium' : 'free'
+      isAdmin: request.isAdmin,
+      premium: request.isAdmin,
+      planId: request.isAdmin ? 'premium' : 'free'
     };
 
     const created = await db.createUser(newUser);
+    signupOTPMap.delete(trimmedEmail);
+
     const { passwordHash: _, ...userSession } = created;
     const token = jwt.sign(userSession, JWT_SECRET, { expiresIn: '7d' });
 
@@ -480,7 +549,109 @@ app.post('/api/auth/signup', async (req, res) => {
     res.status(201).json({ token, user: userSession });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: 'Server error during signup' });
+    res.status(500).json({ message: 'Server error during signup verification' });
+  }
+});
+
+// Forgot Password Request (OTP Generation)
+app.post('/api/auth/reset-request', async (req, res) => {
+  const { email } = req.body;
+  if (!email) {
+    return res.status(400).json({ message: 'Email is required' });
+  }
+
+  const trimmedEmail = email.trim().toLowerCase();
+
+  try {
+    const user = await db.findUserByEmail(trimmedEmail);
+    if (!user) {
+      return res.status(404).json({ message: 'No account found with this email' });
+    }
+
+    const otp = generateOTP();
+    const expires = Date.now() + 15 * 60 * 1000; // 15 mins
+
+    resetOTPMap.set(trimmedEmail, {
+      otp,
+      expires
+    });
+
+    console.log(`[VERIFICATION] Password reset OTP generated for ${trimmedEmail}: ${otp}`);
+
+    res.status(200).json({ 
+      message: 'Password reset code generated.', 
+      email: trimmedEmail,
+      code: otp 
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error during password reset request' });
+  }
+});
+
+// Forgot Password Verify
+app.post('/api/auth/reset-verify', async (req, res) => {
+  const { email, code, newPassword } = req.body;
+  if (!email || !code || !newPassword) {
+    return res.status(400).json({ message: 'Email, code, and new password are required' });
+  }
+
+  const trimmedEmail = email.trim().toLowerCase();
+  const request = resetOTPMap.get(trimmedEmail);
+
+  if (!request) {
+    return res.status(400).json({ message: 'No pending password reset request found for this email' });
+  }
+
+  if (request.otp !== code.trim()) {
+    return res.status(400).json({ message: 'Invalid verification code' });
+  }
+
+  if (Date.now() > request.expires) {
+    resetOTPMap.delete(trimmedEmail);
+    return res.status(400).json({ message: 'Verification code has expired. Please try again.' });
+  }
+
+  if (newPassword.length < 8) {
+    return res.status(400).json({ message: 'New password must be at least 8 characters long' });
+  }
+
+  try {
+    const user = await db.findUserByEmail(trimmedEmail);
+    if (!user) {
+      resetOTPMap.delete(trimmedEmail);
+      return res.status(404).json({ message: 'No account found with this email' });
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    const passwordHash = await bcrypt.hash(newPassword, salt);
+
+    if (useMongo) {
+      await UserModel.findOneAndUpdate({ email: trimmedEmail }, { $set: { passwordHash } });
+    } else {
+      const users = readDB(USERS_FILE);
+      const idx = users.findIndex(u => u.email === trimmedEmail);
+      if (idx !== -1) {
+        users[idx].passwordHash = passwordHash;
+        writeDB(USERS_FILE, users);
+      }
+    }
+
+    resetOTPMap.delete(trimmedEmail);
+
+    // Log telemetry
+    await db.logTelemetry({
+      userId: user.id,
+      userEmail: user.email,
+      eventType: 'password_reset',
+      metadata: { email: user.email },
+      timestamp: new Date()
+    });
+
+    res.status(200).json({ message: 'Password reset successful' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error during password verification' });
   }
 });
 
