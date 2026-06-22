@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { FiBook, FiClock, FiEdit, FiCheck } from 'react-icons/fi';
-import { FaCrown, FaFire } from 'react-icons/fa';
+import { FaFire } from 'react-icons/fa';
 import { useAuth } from '../context/AuthContext';
 import { useBook } from '../context/BookContext';
 import { GENRES } from '../data/books';

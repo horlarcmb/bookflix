@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { FiChevronLeft, FiChevronRight } from 'react-icons/fi';
+import { FiChevronLeft } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
 import { useBook } from '../context/BookContext';
 
@@ -23,6 +23,20 @@ export default function PanelReader({ book }) {
   
   const [contentData, setContentData] = useState(null);
   const [loading, setLoading] = useState(true);
+  
+  // Helper to count pages
+  const getPagesCount = () => {
+    if (contentData && contentData.pages) {
+      return contentData.pages.length;
+    }
+    return 5; // default mock count
+  };
+
+  const [prevChapter, setPrevChapter] = useState(currentChapter);
+  if (currentChapter !== prevChapter) {
+    setPrevChapter(currentChapter);
+    setCurrentPage(1);
+  }
 
   // Load content from IndexedDB on mount/book change
   useEffect(() => {
@@ -54,17 +68,8 @@ export default function PanelReader({ book }) {
 
   // Reset page and sync URL when chapter changes
   useEffect(() => {
-    setCurrentPage(1);
     navigate(`/read/${book.id}?ch=${currentChapter}`, { replace: true });
   }, [currentChapter]);
-
-  // Helper to count pages
-  const getPagesCount = () => {
-    if (contentData && contentData.pages) {
-      return contentData.pages.length;
-    }
-    return 5; // default mock count
-  };
 
   // Generate dynamic mockup panels for default books
   const getMockPanels = () => {

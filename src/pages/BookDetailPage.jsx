@@ -1,8 +1,7 @@
 import { useState } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { FiStar, FiEye, FiBook, FiHeart, FiPlay, FiBookmark, FiCheck, FiUsers } from 'react-icons/fi';
-import { FaCrown } from 'react-icons/fa';
+import { FiStar, FiEye, FiBook, FiHeart, FiPlay, FiCheck, FiUsers } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
 import ContentRow from '../components/ContentRow';
 import { useBook } from '../context/BookContext';
@@ -23,7 +22,7 @@ export default function BookDetailPage() {
   
   const [ratingHover, setRatingHover] = useState(null);
   const [customContent, setCustomContent] = useState(null);
-  const [loadingContent, setLoadingContent] = useState(false);
+  const [, setLoadingContent] = useState(false);
 
   useEffect(() => {
     async function loadContent() {

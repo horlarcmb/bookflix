@@ -20,7 +20,6 @@ export default function HeroBanner() {
 
   if (featured.length === 0) return null;
 
-  const currentBook = featured[activeSlide];
 
   return (
     <div className="hero-banner">

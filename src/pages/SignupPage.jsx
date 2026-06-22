@@ -24,7 +24,6 @@ export default function SignupPage() {
   useEffect(() => {
     if (!showExplanationModal) return;
     
-    setSyncStep(1);
     const t1 = setTimeout(() => setSyncStep(2), 500);
     const t2 = setTimeout(() => setSyncStep(3), 1000);
     const t3 = setTimeout(() => setSyncStep(4), 1500);
@@ -77,6 +76,7 @@ export default function SignupPage() {
     setLoading(true);
     try {
       await signup(name, email, password, selectedGenres, false);
+      setSyncStep(1);
       setShowExplanationModal(true);
     } catch (err) {
       setError(err.message || 'Registration failed. Please try again.');

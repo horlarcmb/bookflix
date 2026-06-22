@@ -25,6 +25,12 @@ export default function TextReader({ book }) {
   const [contentData, setContentData] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  const [prevChapter, setPrevChapter] = useState(currentChapter);
+  if (currentChapter !== prevChapter) {
+    setPrevChapter(currentChapter);
+    setProgress(0);
+  }
+
   const articleRef = useRef(null);
 
   // Load custom content on mount/book change
@@ -68,7 +74,6 @@ export default function TextReader({ book }) {
 
   // Reset progress when chapter changes
   useEffect(() => {
-    setProgress(0);
     window.scrollTo({ top: 0 });
     // Update URL query parameters silently
     navigate(`/read/${book.id}?ch=${currentChapter}`, { replace: true });

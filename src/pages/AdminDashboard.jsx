@@ -7,6 +7,8 @@ import { useBook } from '../context/BookContext';
 import { useAuth } from '../context/AuthContext';
 import { GENRES, CONTENT_TYPES } from '../data/books';
 
+const generateBookId = () => Date.now();
+
 export default function AdminDashboard() {
   const [activeSection, setActiveSection] = useState('overview');
   const { catalog, uploadBook, updateBook, deleteBook } = useBook();
@@ -61,16 +63,16 @@ export default function AdminDashboard() {
 
   // Fetch users and analytics data on component mount
   useEffect(() => {
-    const loadUsers = async () => {
+    const initData = async () => {
       try {
         const list = await getAllUsers();
         setUsersList(list);
       } catch (err) {
         console.error('Failed to fetch users in Admin panel', err);
       }
+      await loadAnalyticsData();
     };
-    loadUsers();
-    loadAnalyticsData();
+    initData();
 
     // Set up real-time polling every 5 seconds
     const interval = setInterval(() => {
@@ -89,7 +91,6 @@ export default function AdminDashboard() {
   const [tags, setTags] = useState('');
   const [rating, setRating] = useState('4.5');
   const [status, setStatus] = useState('Completed');
-  const [premium, setPremium] = useState(false);
   const [coverBase64, setCoverBase64] = useState('');
   const [uploadedContent, setUploadedContent] = useState(null);
   const [parsingStatus, setParsingStatus] = useState('');
@@ -235,7 +236,7 @@ export default function AdminDashboard() {
       return;
     }
 
-    const newBookId = Date.now();
+    const newBookId = generateBookId();
     const count = contentFormat === 'text' 
       ? (uploadedContent.chapters?.length || 1) 
       : (uploadedContent.pages?.length || 1);
@@ -256,7 +257,7 @@ export default function AdminDashboard() {
       language: 'English',
       tags: tags.split(',').map(t => t.trim()).filter(Boolean),
       readCount: 0,
-      premium,
+      premium: false,
       featured: false,
       isAIGenerated: type === 'AI Novel' || selectedGenres.includes('AI-Generated'),
       dateAdded: new Date().toISOString().split('T')[0],
@@ -355,63 +356,7 @@ export default function AdminDashboard() {
     }
   };
 
-  // Line chart SVG
-  const LineChart = () => {
-    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    const monthlySignups = Array(12).fill(0);
-    
-    usersList.forEach(u => {
-      if (u.joinedDate) {
-        const dateObj = new Date(u.joinedDate);
-        if (!isNaN(dateObj.getTime())) {
-          const monthIndex = dateObj.getMonth();
-          monthlySignups[monthIndex] += 1;
-        }
-      }
-    });
-
-    const chartData = [];
-    let cumulative = 0;
-    for (let i = 0; i < 12; i++) {
-      cumulative += monthlySignups[i];
-      chartData.push(cumulative);
-    }
-
-    const maxVal = Math.max(...chartData, 5);
-    const chartWidth = 600;
-    const chartHeight = 250;
-
-    const points = chartData.map((val, i) => {
-      const x = (i / (chartData.length - 1)) * chartWidth;
-      const y = chartHeight - (val / maxVal) * chartHeight;
-      return `${x},${y}`;
-    }).join(' ');
-
-    const areaPoints = `0,${chartHeight} ${points} ${chartWidth},${chartHeight}`;
-
-    return (
-      <svg width="100%" height={chartHeight + 20} viewBox={`0 0 ${chartWidth} ${chartHeight + 20}`}>
-        <defs>
-          <linearGradient id="lineGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="rgba(79,172,254,0.3)" />
-            <stop offset="100%" stopColor="rgba(79,172,254,0)" />
-          </linearGradient>
-        </defs>
-        <polygon points={areaPoints} fill="url(#lineGrad)" />
-        <polyline points={points} fill="none" stroke="#4facfe" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-        {chartData.map((val, i) => {
-          const x = (i / (chartData.length - 1)) * chartWidth;
-          const y = chartHeight - (val / maxVal) * chartHeight;
-          return (
-            <g key={i}>
-              <circle cx={x} cy={y} r="4" fill="#4facfe" stroke="#141414" strokeWidth="2" />
-              <text x={x} y={y - 8} textAnchor="middle" fill="#b3b3b3" fontSize="9">{val}</text>
-            </g>
-          );
-        })}
-      </svg>
-    );
-  };
+  // Line chart SVG will be rendered as a standalone component outside of render to keep render pure
 
   return (
     <div className="page-content">
@@ -464,7 +409,7 @@ export default function AdminDashboard() {
                     <div className="chart-card-header">
                       <span className="chart-card-title">Daily Active Users (Cumulative)</span>
                     </div>
-                    <div className="chart-container"><LineChart /></div>
+                    <div className="chart-container"><LineChart usersList={usersList} /></div>
                   </div>
                 </div>
 
@@ -651,7 +596,7 @@ export default function AdminDashboard() {
                                     // Refresh the list from the server
                                     const refreshed = await getAllUsers();
                                     setUsersList(refreshed);
-                                  } catch (err) {
+                                  } catch {
                                     alert('Failed to toggle admin status.');
                                   }
                                 }
@@ -1027,3 +972,60 @@ export default function AdminDashboard() {
     </div>
   );
 }
+
+function LineChart({ usersList }) {
+  const monthlySignups = Array(12).fill(0);
+  
+  usersList.forEach(u => {
+    if (u.joinedDate) {
+      const dateObj = new Date(u.joinedDate);
+      if (!isNaN(dateObj.getTime())) {
+        const monthIndex = dateObj.getMonth();
+        monthlySignups[monthIndex] += 1;
+      }
+    }
+  });
+
+  const chartData = [];
+  let cumulative = 0;
+  for (let i = 0; i < 12; i++) {
+    cumulative += monthlySignups[i];
+    chartData.push(cumulative);
+  }
+
+  const maxVal = Math.max(...chartData, 5);
+  const chartWidth = 600;
+  const chartHeight = 250;
+
+  const points = chartData.map((val, i) => {
+    const x = (i / (chartData.length - 1)) * chartWidth;
+    const y = chartHeight - (val / maxVal) * chartHeight;
+    return `${x},${y}`;
+  }).join(' ');
+
+  const areaPoints = `0,${chartHeight} ${points} ${chartWidth},${chartHeight}`;
+
+  return (
+    <svg width="100%" height={chartHeight + 20} viewBox={`0 0 ${chartWidth} ${chartHeight + 20}`}>
+      <defs>
+        <linearGradient id="lineGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="rgba(79,172,254,0.3)" />
+          <stop offset="100%" stopColor="rgba(79,172,254,0)" />
+        </linearGradient>
+      </defs>
+      <polygon points={areaPoints} fill="url(#lineGrad)" />
+      <polyline points={points} fill="none" stroke="#4facfe" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+      {chartData.map((val, i) => {
+        const x = (i / (chartData.length - 1)) * chartWidth;
+        const y = chartHeight - (val / maxVal) * chartHeight;
+        return (
+          <g key={i}>
+            <circle cx={x} cy={y} r="4" fill="#4facfe" stroke="#141414" strokeWidth="2" />
+            <text x={x} y={y - 8} textAnchor="middle" fill="#b3b3b3" fontSize="9">{val}</text>
+          </g>
+        );
+      })}
+    </svg>
+  );
+}
+

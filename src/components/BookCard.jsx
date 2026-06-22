@@ -1,8 +1,6 @@
-import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { FiHeart, FiPlay, FiPlus } from 'react-icons/fi';
-import { FaCrown } from 'react-icons/fa';
 import { useAuth } from '../context/AuthContext';
 
 export default function BookCard({ book, showInfo = true }) {

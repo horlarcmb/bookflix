@@ -18,7 +18,6 @@ export default function LoginPage() {
   useEffect(() => {
     if (!showExplanationModal) return;
     
-    setSyncStep(1);
     const t1 = setTimeout(() => setSyncStep(2), 500);
     const t2 = setTimeout(() => setSyncStep(3), 1000);
     const t3 = setTimeout(() => setSyncStep(4), 1500);
@@ -56,6 +55,7 @@ export default function LoginPage() {
     setLoading(true);
     try {
       await login(email.trim(), password);
+      setSyncStep(1);
       setShowExplanationModal(true);
     } catch (err) {
       setError(err.message || 'Login failed. Please check your credentials.');

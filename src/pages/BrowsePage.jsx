@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { FiGrid, FiList } from 'react-icons/fi';
@@ -21,23 +21,23 @@ export default function BrowsePage() {
   const initialSort = params.get('sort') || 'popular';
   const initialQuery = params.get('q') || '';
 
-  const [filteredBooks, setFilteredBooks] = useState(books);
   const [activeGenre, setActiveGenre] = useState(initialGenre);
   const [activeType, setActiveType] = useState(initialType);
   const [sortBy, setSortBy] = useState(initialSort);
   const [query, setQuery] = useState(initialQuery);
   const [viewMode, setViewMode] = useState('grid');
 
-  // Keep state in sync with URL search params when they change
-  useEffect(() => {
-    const searchParams = getQueryParams();
-    setActiveGenre(searchParams.get('genre') || '');
-    setActiveType(searchParams.get('type') || '');
-    setSortBy(searchParams.get('sort') || 'popular');
-    setQuery(searchParams.get('q') || '');
-  }, [location.search]);
+  // Track location.search in render to sync with URL query params when they change
+  const [prevSearch, setPrevSearch] = useState(location.search);
+  if (location.search !== prevSearch) {
+    setPrevSearch(location.search);
+    setActiveGenre(initialGenre);
+    setActiveType(initialType);
+    setSortBy(initialSort);
+    setQuery(initialQuery);
+  }
 
-  useEffect(() => {
+  const filteredBooks = useMemo(() => {
     let result = Array.isArray(books) ? books.filter(Boolean) : [];
 
     if (query) {
@@ -57,25 +57,25 @@ export default function BrowsePage() {
       result = result.filter(b => b && b.type === activeType);
     }
 
+    const sorted = [...result];
     switch (sortBy) {
       case 'rating': 
-        result.sort((a, b) => (b.rating || 0) - (a.rating || 0)); 
+        sorted.sort((a, b) => (b.rating || 0) - (a.rating || 0)); 
         break;
       case 'newest': 
-        result.sort((a, b) => new Date(b.dateAdded || 0) - new Date(a.dateAdded || 0)); 
+        sorted.sort((a, b) => new Date(b.dateAdded || 0) - new Date(a.dateAdded || 0)); 
         break;
       case 'trending': 
-        result.sort((a, b) => (b.readCount || 0) - (a.readCount || 0)); 
+        sorted.sort((a, b) => (b.readCount || 0) - (a.readCount || 0)); 
         break;
       case 'az': 
-        result.sort((a, b) => (a.title || '').localeCompare(b.title || '')); 
+        sorted.sort((a, b) => (a.title || '').localeCompare(b.title || '')); 
         break;
       default: 
-        result.sort((a, b) => (b.readCount || 0) - (a.readCount || 0));
+        sorted.sort((a, b) => (b.readCount || 0) - (a.readCount || 0));
     }
-
-    setFilteredBooks(result);
-  }, [activeGenre, activeType, sortBy, query, books]);
+    return sorted;
+  }, [activeGenre, activeType, sortBy, query, books, searchBooks]);
 
   return (
     <div className="page-content">
@@ -184,8 +184,8 @@ export default function BrowsePage() {
                 </div>
               ) : (
                 <div className={viewMode === 'grid' ? "library-grid" : "library-list-view"} style={{ display: viewMode === 'list' ? 'flex' : undefined, flexDirection: viewMode === 'list' ? 'column' : undefined, gap: viewMode === 'list' ? '12px' : undefined }}>
-                  {Array.isArray(filteredBooks) && filteredBooks.filter(Boolean).map(book => (
-                    <BookCard key={book.id || Math.random()} book={book} showInfo={viewMode === 'grid'} />
+                  {Array.isArray(filteredBooks) && filteredBooks.filter(Boolean).map((book, idx) => (
+                    <BookCard key={book.id || `book-${idx}`} book={book} showInfo={viewMode === 'grid'} />
                   ))}
                 </div>
               )}

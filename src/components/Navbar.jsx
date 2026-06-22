@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FiSearch, FiMenu, FiBell, FiUser, FiSettings, FiLogOut, FiCreditCard, FiBookOpen, FiX } from 'react-icons/fi';
+import { FiSearch, FiMenu, FiBell, FiUser, FiSettings, FiLogOut, FiBookOpen, FiX } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
 
 export default function Navbar({ onNotificationToggle, notificationCount }) {

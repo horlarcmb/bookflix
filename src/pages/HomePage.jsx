@@ -114,7 +114,7 @@ export default function HomePage() {
         </div>
         <div className="container">
           <div className="genre-grid">
-            {genreCards.map((genre, i) => {
+            {genreCards.map((genre) => {
               // Get count based on type or genre matching
               const count = books.filter(b => 
                 b.genre.includes(genre.name) || 
