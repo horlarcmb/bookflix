@@ -120,6 +120,9 @@ export default function PanelReader({ book }) {
 
   const getPagesList = () => {
     if (contentData && contentData.pages) {
+      // Filter pages for current chapter if chapterNumber exists, otherwise default to all pages
+      const chapterPages = contentData.pages.filter(p => p.chapterNumber === currentChapter);
+      if (chapterPages.length > 0) return chapterPages;
       return contentData.pages;
     }
     return getMockPanels();

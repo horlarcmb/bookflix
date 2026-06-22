@@ -16,9 +16,24 @@ import { useEffect } from 'react';
 export default function BookDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { getBookById, fetchBookContent } = useBook();
+  const { getBookById, fetchBookContent, deleteBook } = useBook();
   const book = getBookById(id);
   const { user, toggleSaveBook, setBookRating } = useAuth();
+
+  const handleEditDetails = () => {
+    navigate(`/admin?edit=${book.id}`);
+  };
+
+  const handleDeleteClick = async () => {
+    if (window.confirm(`Are you sure you want to delete "${book.title}"?`)) {
+      try {
+        await deleteBook(book.id);
+        navigate('/');
+      } catch (err) {
+        alert(err.message || 'Failed to delete book.');
+      }
+    }
+  };
   
   const [ratingHover, setRatingHover] = useState(null);
   const [customContent, setCustomContent] = useState(null);
@@ -42,7 +57,7 @@ export default function BookDetailPage() {
       }
     }
     loadContent();
-  }, [book, id]);
+  }, [book, id, fetchBookContent]);
 
   if (!book) {
     return (
@@ -147,6 +162,16 @@ export default function BookDetailPage() {
               <button className={`btn ${isSaved ? 'btn-primary' : 'btn-secondary'} btn-lg`} onClick={handleSaveToggle}>
                 <FiHeart fill={isSaved ? 'currentColor' : 'none'} /> {isSaved ? 'Saved in Library' : 'Add to Library'}
               </button>
+              {user?.isAdmin && (
+                <>
+                  <button className="btn btn-secondary btn-lg" onClick={handleEditDetails} style={{ borderColor: 'var(--warning)', color: 'var(--warning)' }}>
+                    Edit Details
+                  </button>
+                  <button className="btn btn-secondary btn-lg" onClick={handleDeleteClick} style={{ borderColor: 'var(--error)', color: 'var(--error)' }}>
+                    Delete Book
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </motion.div>

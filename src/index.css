@@ -191,14 +191,18 @@ ul, ol { list-style: none; }
   display: flex;
   align-items: center;
   padding: 0 var(--space-xl);
+  background: var(--bg-primary); /* solid black to prevent overlapping text */
+  border-bottom: 1px solid var(--border);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
   transition: background var(--transition-base), backdrop-filter var(--transition-base);
 }
 
 .navbar.scrolled {
-  background: var(--bg-glass);
+  background: var(--bg-primary);
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
   border-bottom: 1px solid var(--border);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
 }
 
 .navbar-inner {

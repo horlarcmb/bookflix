@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   FiBarChart2, FiBook, FiUsers, FiUpload, FiTrash2, FiX, FiCheck 
@@ -11,7 +12,8 @@ const generateBookId = () => Date.now();
 
 export default function AdminDashboard() {
   const [activeSection, setActiveSection] = useState('overview');
-  const { catalog, uploadBook, updateBook, deleteBook } = useBook();
+  const { catalog, uploadBook, updateBook, deleteBook, fetchBookContent } = useBook();
+  const location = useLocation();
   const { user: currentUser, getAllUsers, toggleUserAdminStatus } = useAuth();
   const [usersList, setUsersList] = useState([]);
   const [isUploadOpen, setIsUploadOpen] = useState(false);
@@ -20,10 +22,25 @@ export default function AdminDashboard() {
   const [bookSearchQuery, setBookSearchQuery] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
 
+  // Form State
+  const [title, setTitle] = useState('');
+  const [author, setAuthor] = useState('');
+  const [synopsis, setSynopsis] = useState('');
+  const [type, setType] = useState('Novel');
+  const [selectedGenres, setSelectedGenres] = useState([]);
+  const [tags, setTags] = useState('');
+  const [rating, setRating] = useState('4.5');
+  const [status, setStatus] = useState('Completed');
+  const [coverBase64, setCoverBase64] = useState('');
+  const [parsingStatus, setParsingStatus] = useState('');
+  const [formChapters, setFormChapters] = useState([
+    { id: 1, title: 'Chapter 1', content: '', pages: [] }
+  ]);
+
   // Analytics & Telemetry States
   const [telemetryLogs, setTelemetryLogs] = useState([]);
 
-  const handleEditClick = (book) => {
+  const handleEditClick = async (book) => {
     setEditingBook(book);
     setTitle(book.title);
     setAuthor(book.author);
@@ -34,10 +51,140 @@ export default function AdminDashboard() {
     setSelectedGenres(book.genre || []);
     setTags(book.tags ? book.tags.join(', ') : '');
     setCoverBase64(book.cover || '');
-    setUploadedContent(null);
-    setParsingStatus('');
+    setParsingStatus('Loading existing book content...');
+    setFormChapters([{ id: 1, title: 'Chapter 1', content: '', pages: [] }]);
     setIsEditOpen(true);
+
+    try {
+      const content = await fetchBookContent(book.id);
+      if (content) {
+        if (book.contentFormat === 'text') {
+          if (content.chapters && content.chapters.length > 0) {
+            const loaded = content.chapters.map((ch, idx) => ({
+              id: idx + 1,
+              title: ch.title || `Chapter ${idx + 1}`,
+              content: ch.content || '',
+              pages: []
+            }));
+            setFormChapters(loaded);
+          } else {
+            setFormChapters([{ id: 1, title: 'Chapter 1', content: '', pages: [] }]);
+          }
+        } else {
+          if (content.pages && content.pages.length > 0) {
+            const chaptersMap = {};
+            content.pages.forEach(p => {
+              const chNum = p.chapterNumber || 1;
+              if (!chaptersMap[chNum]) {
+                chaptersMap[chNum] = [];
+              }
+              chaptersMap[chNum].push(p);
+            });
+            
+            const loaded = Object.keys(chaptersMap).sort((a, b) => Number(a) - Number(b)).map((chNum, idx) => {
+              const pages = chaptersMap[chNum].sort((pa, pb) => pa.pageNumber - pb.pageNumber);
+              return {
+                id: idx + 1,
+                title: `Chapter ${chNum}`,
+                content: '',
+                pages: pages
+              };
+            });
+            setFormChapters(loaded);
+          } else {
+            setFormChapters([{ id: 1, title: 'Chapter 1', content: '', pages: [] }]);
+          }
+        }
+        setParsingStatus('');
+      } else {
+        setParsingStatus('No content found on server. Starting with a blank chapter.');
+      }
+    } catch (err) {
+      console.error('Failed to load book content:', err);
+      setParsingStatus('Failed to load existing content from server. You can write new chapters.');
+    }
   };
+
+  const handleAddChapter = () => {
+    setFormChapters(prev => {
+      const maxId = prev.reduce((max, ch) => Math.max(max, ch.id), 0);
+      return [
+        ...prev,
+        { id: maxId + 1, title: `Chapter ${prev.length + 1}`, content: '', pages: [] }
+      ];
+    });
+  };
+
+  const handleRemoveChapter = (index) => {
+    setFormChapters(prev => prev.filter((_, idx) => idx !== index));
+  };
+
+  const handleUpdateChapter = (index, field, value) => {
+    setFormChapters(prev => prev.map((ch, idx) => {
+      if (idx === index) {
+        return { ...ch, [field]: value };
+      }
+      return ch;
+    }));
+  };
+
+  const handleChapterFileChange = (index, e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const text = event.target.result;
+      handleUpdateChapter(index, 'content', text.trim());
+    };
+    reader.readAsText(file);
+  };
+
+  const handleChapterImagesChange = async (index, e) => {
+    const files = Array.from(e.target.files);
+    if (files.length === 0) return;
+    
+    files.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }));
+    
+    try {
+      const pagePromises = files.map((file, idx) => {
+        return new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            resolve({
+              pageNumber: idx + 1,
+              imageBase64: reader.result,
+              dialogue: `Page ${idx + 1} Dialogue`,
+              description: `Story scenes on page ${idx + 1}`
+            });
+          };
+          reader.onerror = () => reject(new Error('Failed to read image'));
+          reader.readAsDataURL(file);
+        });
+      });
+      
+      const pages = await Promise.all(pagePromises);
+      handleUpdateChapter(index, 'pages', pages);
+    } catch (err) {
+      console.error(err);
+      alert('Error converting chapter images.');
+    }
+  };
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const editIdStr = params.get('edit');
+    if (editIdStr && catalog.length > 0) {
+      const editId = parseInt(editIdStr);
+      const targetBook = catalog.find(b => b.id === editId);
+      if (targetBook) {
+        setTimeout(() => {
+          setActiveSection('content');
+          handleEditClick(targetBook);
+        }, 0);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.search, catalog]);
 
   const getAuthHeaders = () => {
     const token = localStorage.getItem('bookflix_token');
@@ -80,20 +227,10 @@ export default function AdminDashboard() {
     }, 5000);
 
     return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [getAllUsers]);
 
-  // Form State
-  const [title, setTitle] = useState('');
-  const [author, setAuthor] = useState('');
-  const [synopsis, setSynopsis] = useState('');
-  const [type, setType] = useState('Novel');
-  const [selectedGenres, setSelectedGenres] = useState([]);
-  const [tags, setTags] = useState('');
-  const [rating, setRating] = useState('4.5');
-  const [status, setStatus] = useState('Completed');
-  const [coverBase64, setCoverBase64] = useState('');
-  const [uploadedContent, setUploadedContent] = useState(null);
-  const [parsingStatus, setParsingStatus] = useState('');
+
 
   const sidebarItems = [
     { id: 'overview', icon: <FiBarChart2 />, label: 'Overview' },
@@ -135,111 +272,35 @@ export default function AdminDashboard() {
     reader.readAsDataURL(file);
   };
 
-  // Process Novel text file (.txt)
-  const handleTextFile = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    
-    setParsingStatus('Parsing text file...');
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const text = event.target.result;
-      
-      // Auto-split text into chapters by matching headers (e.g. Chapter I, Chapter 1, PART I, Book I, Prologue, etc.)
-      const chapterSplitRegex = /(?=^(?:(?:Chapter|Part|Book|Section)\s+(?:[ivxlcdm\d]+|[0-9]+)|Prologue|Epilogue|Preface|Introduction)\b)/mi;
-      const rawChunks = text.split(chapterSplitRegex);
-      
-      let tempChapters = [];
-      rawChunks.forEach((chunk) => {
-        const trimmed = chunk.trim();
-        if (!trimmed) return;
-        
-        const lines = trimmed.split('\n');
-        const chTitle = lines[0] ? lines[0].trim() : '';
-        const chContent = lines.slice(1).join('\n\n').trim();
-        
-        tempChapters.push({ title: chTitle, content: chContent });
-      });
-
-      // Merge tiny headers (like "PART I" or empty/intro segments) into the next chapter's title to keep text clean and avoid empty chapters
-      let parsedChapters = [];
-      for (let i = 0; i < tempChapters.length; i++) {
-        const current = tempChapters[i];
-        if (current.content.length < 150 && i + 1 < tempChapters.length) {
-          const next = tempChapters[i + 1];
-          next.title = current.title + (current.content ? ' — ' + current.content : '') + ': ' + next.title;
-        } else if (current.title || current.content) {
-          if (!current.title) {
-            current.title = `Chapter ${parsedChapters.length + 1}`;
-          }
-          parsedChapters.push(current);
-        }
-      }
-      
-      if (parsedChapters.length === 0) {
-        parsedChapters = [{
-          title: 'Chapter 1: Initial Part',
-          content: text.trim()
-        }];
-      }
-      
-      setUploadedContent({ chapters: parsedChapters });
-      setParsingStatus(`Parsed successfully! Loaded ${parsedChapters.length} chapters.`);
-    };
-    reader.onerror = () => {
-      setParsingStatus('Error reading file.');
-    };
-    reader.readAsText(file);
-  };
-
-  // Process Manga page images
-  const handleMangaImages = async (e) => {
-    const files = Array.from(e.target.files);
-    if (files.length === 0) return;
-    
-    setParsingStatus(`Processing ${files.length} images...`);
-    
-    // Sort files by name to ensure pages flow in correct order
-    files.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }));
-    
-    try {
-      const pagePromises = files.map((file, idx) => {
-        return new Promise((resolve, reject) => {
-          const reader = new FileReader();
-          reader.onloadend = () => {
-            resolve({
-              pageNumber: idx + 1,
-              imageBase64: reader.result,
-              dialogue: `Page ${idx + 1} Dialogue`,
-              description: `Story scenes on page ${idx + 1}`
-            });
-          };
-          reader.onerror = () => reject(new Error('Failed to read image'));
-          reader.readAsDataURL(file);
-        });
-      });
-      
-      const pages = await Promise.all(pagePromises);
-      setUploadedContent({ pages });
-      setParsingStatus(`Successfully loaded ${pages.length} panels/pages!`);
-    } catch (err) {
-      console.error(err);
-      setParsingStatus('Error converting images.');
-    }
-  };
-
   // Save Book Handler
   const handleUploadSubmit = async (e) => {
     e.preventDefault();
-    if (!title || !author || !coverBase64 || !uploadedContent) {
-      alert('Please fill in all required fields and upload cover + content file.');
+    if (!title || !author || !coverBase64) {
+      alert('Please fill in all required fields and upload cover.');
       return;
     }
 
+    if (formChapters.length === 0) {
+      alert('Please add at least one chapter.');
+      return;
+    }
+
+    if (contentFormat === 'text') {
+      const hasInvalidChapter = formChapters.some(ch => !ch.title.trim() || !ch.content.trim());
+      if (hasInvalidChapter) {
+        alert('Please fill in title and content for all chapters.');
+        return;
+      }
+    } else {
+      const hasInvalidChapter = formChapters.some(ch => !ch.title.trim() || !ch.pages || ch.pages.length === 0);
+      if (hasInvalidChapter) {
+        alert('Please fill in title and upload page images for all chapters.');
+        return;
+      }
+    }
+
     const newBookId = generateBookId();
-    const count = contentFormat === 'text' 
-      ? (uploadedContent.chapters?.length || 1) 
-      : (uploadedContent.pages?.length || 1);
+    const count = formChapters.length;
 
     const metadata = {
       id: newBookId,
@@ -261,12 +322,36 @@ export default function AdminDashboard() {
       featured: false,
       isAIGenerated: type === 'AI Novel' || selectedGenres.includes('AI-Generated'),
       dateAdded: new Date().toISOString().split('T')[0],
-      pages: contentFormat === 'text' ? Math.round(count * 12) : count,
+      pages: contentFormat === 'text' ? Math.round(count * 12) : formChapters.reduce((sum, ch) => sum + (ch.pages?.length || 0), 0),
       publisher: 'User Self-Publish'
     };
 
+    const finalContent = contentFormat === 'text' 
+      ? {
+          chapters: formChapters.map(ch => ({
+            title: ch.title,
+            content: ch.content
+          }))
+        }
+      : {
+          pages: formChapters.reduce((acc, ch, chIdx) => {
+            const chapterNumber = chIdx + 1;
+            const pages = ch.pages || [];
+            pages.forEach((p, pIdx) => {
+              acc.push({
+                pageNumber: pIdx + 1,
+                imageBase64: p.imageBase64,
+                dialogue: p.dialogue || `Page ${pIdx + 1} Dialogue`,
+                description: p.description || `Story scenes on page ${pIdx + 1}`,
+                chapterNumber: chapterNumber
+              });
+            });
+            return acc;
+          }, [])
+        };
+
     try {
-      await uploadBook(metadata, uploadedContent);
+      await uploadBook(metadata, finalContent);
       setSuccessMsg(`"${title}" uploaded successfully!`);
       
       // Reset Form State
@@ -276,8 +361,8 @@ export default function AdminDashboard() {
       setSelectedGenres([]);
       setTags('');
       setCoverBase64('');
-      setUploadedContent(null);
       setParsingStatus('');
+      setFormChapters([{ id: 1, title: 'Chapter 1', content: '', pages: [] }]);
       
       // Close Modal
       setTimeout(() => {
@@ -306,12 +391,26 @@ export default function AdminDashboard() {
       return;
     }
 
-    let count = editingBook.chapters;
-    if (uploadedContent) {
-      count = contentFormat === 'text' 
-        ? (uploadedContent.chapters?.length || 1) 
-        : (uploadedContent.pages?.length || 1);
+    if (formChapters.length === 0) {
+      alert('Please add at least one chapter.');
+      return;
     }
+
+    if (contentFormat === 'text') {
+      const hasInvalidChapter = formChapters.some(ch => !ch.title.trim() || !ch.content.trim());
+      if (hasInvalidChapter) {
+        alert('Please fill in title and content for all chapters.');
+        return;
+      }
+    } else {
+      const hasInvalidChapter = formChapters.some(ch => !ch.title.trim() || !ch.pages || ch.pages.length === 0);
+      if (hasInvalidChapter) {
+        alert('Please fill in title and upload page images for all chapters.');
+        return;
+      }
+    }
+
+    const count = formChapters.length;
 
     const updatedMetadata = {
       ...editingBook,
@@ -320,18 +419,42 @@ export default function AdminDashboard() {
       cover: coverBase64,
       genre: selectedGenres.length > 0 ? selectedGenres : ['Fiction'],
       type,
-      contentFormat: uploadedContent ? contentFormat : editingBook.contentFormat,
+      contentFormat: contentFormat,
       rating: parseFloat(rating) || 4.5,
       synopsis,
       chapters: count,
       status,
       tags: tags.split(',').map(t => t.trim()).filter(Boolean),
       isAIGenerated: type === 'AI Novel' || selectedGenres.includes('AI-Generated'),
-      pages: uploadedContent ? (contentFormat === 'text' ? Math.round(count * 12) : count) : editingBook.pages
+      pages: contentFormat === 'text' ? Math.round(count * 12) : formChapters.reduce((sum, ch) => sum + (ch.pages?.length || 0), 0)
     };
 
+    const finalContent = contentFormat === 'text' 
+      ? {
+          chapters: formChapters.map(ch => ({
+            title: ch.title,
+            content: ch.content
+          }))
+        }
+      : {
+          pages: formChapters.reduce((acc, ch, chIdx) => {
+            const chapterNumber = chIdx + 1;
+            const pages = ch.pages || [];
+            pages.forEach((p, pIdx) => {
+              acc.push({
+                pageNumber: pIdx + 1,
+                imageBase64: p.imageBase64,
+                dialogue: p.dialogue || `Page ${pIdx + 1} Dialogue`,
+                description: p.description || `Story scenes on page ${pIdx + 1}`,
+                chapterNumber: chapterNumber
+              });
+            });
+            return acc;
+          }, [])
+        };
+
     try {
-      await updateBook(editingBook.id, updatedMetadata, uploadedContent);
+      await updateBook(editingBook.id, updatedMetadata, finalContent);
       setSuccessMsg(`"${title}" updated successfully!`);
       
       // Reset Form State
@@ -341,9 +464,9 @@ export default function AdminDashboard() {
       setSelectedGenres([]);
       setTags('');
       setCoverBase64('');
-      setUploadedContent(null);
       setParsingStatus('');
       setEditingBook(null);
+      setFormChapters([{ id: 1, title: 'Chapter 1', content: '', pages: [] }]);
       
       // Close Modal
       setTimeout(() => {
@@ -483,7 +606,20 @@ export default function AdminDashboard() {
                     onChange={e => setBookSearchQuery(e.target.value)}
                     style={{ flex: 1, padding: '10px 16px', background: 'var(--bg-tertiary)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', color: '#fff' }}
                   />
-                  <button className="btn btn-primary" onClick={() => setIsUploadOpen(true)}>
+                  <button 
+                    className="btn btn-primary" 
+                    onClick={() => { 
+                      setFormChapters([{ id: 1, title: 'Chapter 1', content: '', pages: [] }]); 
+                      setTitle('');
+                      setAuthor('');
+                      setSynopsis('');
+                      setSelectedGenres([]);
+                      setTags('');
+                      setCoverBase64('');
+                      setParsingStatus('');
+                      setIsUploadOpen(true); 
+                    }}
+                  >
                     <FiUpload /> Upload New Content
                   </button>
                 </div>
@@ -687,7 +823,11 @@ export default function AdminDashboard() {
                       <label>Type *</label>
                       <select 
                         value={type} 
-                        onChange={e => { setType(e.target.value); setUploadedContent(null); setParsingStatus(''); }}
+                        onChange={e => { 
+                          setType(e.target.value); 
+                          setParsingStatus(''); 
+                          setFormChapters([{ id: Date.now(), title: 'Chapter 1', content: '', pages: [] }]);
+                        }}
                         style={{ width: '100%', padding: '12px', background: 'var(--bg-tertiary)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', color: '#fff' }}
                       >
                         {CONTENT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
@@ -753,28 +893,130 @@ export default function AdminDashboard() {
                     </label>
                   </div>
 
-                  {/* Dynamic File Upload based on ContentFormat */}
-                  <div className="form-group" style={{ border: '1px dashed var(--border)', padding: '16px', borderRadius: 'var(--radius-md)', textAlign: 'center', background: 'var(--bg-tertiary)' }}>
-                    {contentFormat === 'text' ? (
-                      <label style={{ cursor: 'pointer', display: 'block' }}>
-                        <FiBook style={{ fontSize: '1.5rem', marginBottom: '4px', color: 'var(--text-tertiary)' }} />
-                        <div style={{ fontSize: '0.85rem' }}>Upload Novel Text File * (.txt)</div>
-                        <input type="file" accept=".txt" onChange={handleTextFile} style={{ display: 'none' }} required />
-                      </label>
-                    ) : (
-                      <label style={{ cursor: 'pointer', display: 'block' }}>
-                        <FiUpload style={{ fontSize: '1.5rem', marginBottom: '4px', color: 'var(--text-tertiary)' }} />
-                        <div style={{ fontSize: '0.85rem' }}>Upload Manga Page Images * (Select Multiple files)</div>
-                        <input type="file" accept="image/*" multiple onChange={handleMangaImages} style={{ display: 'none' }} required />
-                      </label>
-                    )}
-                    
-                    {parsingStatus && (
-                      <div style={{ marginTop: '8px', fontSize: '0.8rem', fontWeight: 600, color: parsingStatus.includes('successfully') ? 'var(--success)' : 'var(--warning)' }}>
-                        {parsingStatus}
+                  {/* Dynamic Chapters Section */}
+                  <div className="chapters-section" style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '16px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: '8px' }}>
+                      <h3 style={{ fontSize: '1.1rem', fontWeight: 600 }}>Chapters & Upload Content</h3>
+                      <button 
+                        type="button" 
+                        className="btn btn-outline btn-sm" 
+                        onClick={handleAddChapter}
+                        style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px' }}
+                      >
+                        + Add Chapter
+                      </button>
+                    </div>
+
+                    {formChapters.map((chapter, index) => (
+                      <div 
+                        key={chapter.id} 
+                        style={{ 
+                          background: 'var(--bg-tertiary)', 
+                          border: '1px solid var(--border)', 
+                          borderRadius: 'var(--radius-md)', 
+                          padding: '16px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '12px'
+                        }}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <span style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Chapter {index + 1}</span>
+                          {formChapters.length > 1 && (
+                            <button 
+                              type="button" 
+                              className="btn btn-ghost btn-sm" 
+                              onClick={() => handleRemoveChapter(index)}
+                              style={{ color: 'var(--error)', padding: '2px 8px', fontSize: '0.8rem' }}
+                            >
+                              Remove
+                            </button>
+                          )}
+                        </div>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '12px', alignItems: 'start' }}>
+                          {/* Naming Column */}
+                          <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                            <label style={{ fontSize: '0.8rem', color: 'var(--text-tertiary)' }}>Chapter Title *</label>
+                            <input 
+                              type="text" 
+                              placeholder={`e.g. Chapter ${index + 1}: The Beginning`} 
+                              value={chapter.title} 
+                              onChange={(e) => handleUpdateChapter(index, 'title', e.target.value)}
+                              required 
+                              style={{ 
+                                width: '100%', 
+                                padding: '10px', 
+                                background: 'var(--bg-primary)', 
+                                border: '1px solid var(--border)', 
+                                borderRadius: 'var(--radius-sm)', 
+                                color: '#fff' 
+                              }}
+                            />
+                          </div>
+
+                          {/* Upload Column */}
+                          <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                            <label style={{ fontSize: '0.8rem', color: 'var(--text-tertiary)' }}>
+                              {contentFormat === 'text' ? 'Content (Text)*' : 'Upload Page Images *'}
+                            </label>
+                            
+                            {contentFormat === 'text' ? (
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                <textarea 
+                                  placeholder="Paste chapter text content here..." 
+                                  value={chapter.content} 
+                                  onChange={(e) => handleUpdateChapter(index, 'content', e.target.value)}
+                                  rows="4"
+                                  required
+                                  style={{ 
+                                    width: '100%', 
+                                    padding: '10px', 
+                                    background: 'var(--bg-primary)', 
+                                    border: '1px solid var(--border)', 
+                                    borderRadius: 'var(--radius-sm)', 
+                                    color: '#fff',
+                                    resize: 'vertical'
+                                  }}
+                                />
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                  <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>Or upload .txt:</span>
+                                  <input 
+                                    type="file" 
+                                    accept=".txt" 
+                                    onChange={(e) => handleChapterFileChange(index, e)}
+                                    style={{ fontSize: '0.8rem', width: 'auto', background: 'transparent', border: 'none', padding: 0 }}
+                                  />
+                                </div>
+                              </div>
+                            ) : (
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                <input 
+                                  type="file" 
+                                  accept="image/*" 
+                                  multiple 
+                                  onChange={(e) => handleChapterImagesChange(index, e)}
+                                  required={!chapter.pages || chapter.pages.length === 0}
+                                  style={{ fontSize: '0.8rem', background: 'var(--bg-primary)', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', padding: '6px' }}
+                                />
+                                {chapter.pages && chapter.pages.length > 0 && (
+                                  <span style={{ fontSize: '0.8rem', color: 'var(--success)' }}>
+                                    ✓ {chapter.pages.length} pages loaded for this chapter
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </div>
                       </div>
-                    )}
+                    ))}
                   </div>
+
+                  {parsingStatus && (
+                    <div style={{ marginTop: '8px', fontSize: '0.8rem', fontWeight: 600, color: 'var(--warning)' }}>
+                      {parsingStatus}
+                    </div>
+                  )}
 
                   <div style={{ display: 'flex', gap: '12px', marginTop: '10px' }}>
                     <button className="btn btn-outline" type="button" style={{ flex: 1 }} onClick={() => setIsUploadOpen(false)}>Cancel</button>
@@ -782,7 +1024,7 @@ export default function AdminDashboard() {
                       className="btn btn-primary" 
                       type="submit" 
                       style={{ flex: 2 }}
-                      disabled={!coverBase64 || !uploadedContent}
+                      disabled={!coverBase64}
                     >
                       Publish
                     </button>
@@ -863,7 +1105,11 @@ export default function AdminDashboard() {
                       <label>Type *</label>
                       <select 
                         value={type} 
-                        onChange={e => { setType(e.target.value); setUploadedContent(null); setParsingStatus(''); }}
+                        onChange={e => { 
+                          setType(e.target.value); 
+                          setParsingStatus(''); 
+                          setFormChapters([{ id: Date.now(), title: 'Chapter 1', content: '', pages: [] }]);
+                        }}
                         style={{ width: '100%', padding: '12px', background: 'var(--bg-tertiary)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', color: '#fff' }}
                       >
                         {CONTENT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
@@ -929,28 +1175,130 @@ export default function AdminDashboard() {
                     </label>
                   </div>
 
-                  {/* Optional File Upload to replace content */}
-                  <div className="form-group" style={{ border: '1px dashed var(--border)', padding: '16px', borderRadius: 'var(--radius-md)', textAlign: 'center', background: 'var(--bg-tertiary)' }}>
-                    {editingBook.contentFormat === 'text' ? (
-                      <label style={{ cursor: 'pointer', display: 'block' }}>
-                        <FiBook style={{ fontSize: '1.5rem', marginBottom: '4px', color: 'var(--text-tertiary)' }} />
-                        <div style={{ fontSize: '0.85rem' }}>Replace Novel Text File (Optional, .txt)</div>
-                        <input type="file" accept=".txt" onChange={handleTextFile} style={{ display: 'none' }} />
-                      </label>
-                    ) : (
-                      <label style={{ cursor: 'pointer', display: 'block' }}>
-                        <FiUpload style={{ fontSize: '1.5rem', marginBottom: '4px', color: 'var(--text-tertiary)' }} />
-                        <div style={{ fontSize: '0.85rem' }}>Replace Manga Page Images (Optional, Select Multiple)</div>
-                        <input type="file" accept="image/*" multiple onChange={handleMangaImages} style={{ display: 'none' }} />
-                      </label>
-                    )}
-                    
-                    {parsingStatus && (
-                      <div style={{ marginTop: '8px', fontSize: '0.8rem', fontWeight: 600, color: parsingStatus.includes('successfully') ? 'var(--success)' : 'var(--warning)' }}>
-                        {parsingStatus}
+                  {/* Dynamic Chapters Section */}
+                  <div className="chapters-section" style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '16px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: '8px' }}>
+                      <h3 style={{ fontSize: '1.1rem', fontWeight: 600 }}>Chapters & Upload Content</h3>
+                      <button 
+                        type="button" 
+                        className="btn btn-outline btn-sm" 
+                        onClick={handleAddChapter}
+                        style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px' }}
+                      >
+                        + Add Chapter
+                      </button>
+                    </div>
+
+                    {formChapters.map((chapter, index) => (
+                      <div 
+                        key={chapter.id} 
+                        style={{ 
+                          background: 'var(--bg-tertiary)', 
+                          border: '1px solid var(--border)', 
+                          borderRadius: 'var(--radius-md)', 
+                          padding: '16px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '12px'
+                        }}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <span style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Chapter {index + 1}</span>
+                          {formChapters.length > 1 && (
+                            <button 
+                              type="button" 
+                              className="btn btn-ghost btn-sm" 
+                              onClick={() => handleRemoveChapter(index)}
+                              style={{ color: 'var(--error)', padding: '2px 8px', fontSize: '0.8rem' }}
+                            >
+                              Remove
+                            </button>
+                          )}
+                        </div>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '12px', alignItems: 'start' }}>
+                          {/* Naming Column */}
+                          <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                            <label style={{ fontSize: '0.8rem', color: 'var(--text-tertiary)' }}>Chapter Title *</label>
+                            <input 
+                              type="text" 
+                              placeholder={`e.g. Chapter ${index + 1}: The Beginning`} 
+                              value={chapter.title} 
+                              onChange={(e) => handleUpdateChapter(index, 'title', e.target.value)}
+                              required 
+                              style={{ 
+                                width: '100%', 
+                                padding: '10px', 
+                                background: 'var(--bg-primary)', 
+                                border: '1px solid var(--border)', 
+                                borderRadius: 'var(--radius-sm)', 
+                                color: '#fff' 
+                              }}
+                            />
+                          </div>
+
+                          {/* Upload Column */}
+                          <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                            <label style={{ fontSize: '0.8rem', color: 'var(--text-tertiary)' }}>
+                              {contentFormat === 'text' ? 'Content (Text)*' : 'Upload Page Images *'}
+                            </label>
+                            
+                            {contentFormat === 'text' ? (
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                <textarea 
+                                  placeholder="Paste chapter text content here..." 
+                                  value={chapter.content} 
+                                  onChange={(e) => handleUpdateChapter(index, 'content', e.target.value)}
+                                  rows="4"
+                                  required
+                                  style={{ 
+                                    width: '100%', 
+                                    padding: '10px', 
+                                    background: 'var(--bg-primary)', 
+                                    border: '1px solid var(--border)', 
+                                    borderRadius: 'var(--radius-sm)', 
+                                    color: '#fff',
+                                    resize: 'vertical'
+                                  }}
+                                />
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                  <span style={{ fontSize: '0.75rem', color: 'var(--text-tertiary)' }}>Or upload .txt:</span>
+                                  <input 
+                                    type="file" 
+                                    accept=".txt" 
+                                    onChange={(e) => handleChapterFileChange(index, e)}
+                                    style={{ fontSize: '0.8rem', width: 'auto', background: 'transparent', border: 'none', padding: 0 }}
+                                  />
+                                </div>
+                              </div>
+                            ) : (
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                <input 
+                                  type="file" 
+                                  accept="image/*" 
+                                  multiple 
+                                  onChange={(e) => handleChapterImagesChange(index, e)}
+                                  required={!chapter.pages || chapter.pages.length === 0}
+                                  style={{ fontSize: '0.8rem', background: 'var(--bg-primary)', border: '1px solid var(--border)', borderRadius: 'var(--radius-sm)', padding: '6px' }}
+                                />
+                                {chapter.pages && chapter.pages.length > 0 && (
+                                  <span style={{ fontSize: '0.8rem', color: 'var(--success)' }}>
+                                    ✓ {chapter.pages.length} pages loaded for this chapter
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </div>
                       </div>
-                    )}
+                    ))}
                   </div>
+
+                  {parsingStatus && (
+                    <div style={{ marginTop: '8px', fontSize: '0.8rem', fontWeight: 600, color: 'var(--warning)' }}>
+                      {parsingStatus}
+                    </div>
+                  )}
 
                   <div style={{ display: 'flex', gap: '12px', marginTop: '10px' }}>
                     <button className="btn btn-outline" type="button" style={{ flex: 1 }} onClick={() => { setIsEditOpen(false); setEditingBook(null); }}>Cancel</button>

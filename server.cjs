@@ -123,7 +123,8 @@ const BookContentSchema = new mongoose.Schema({
     pageNumber: Number,
     imageBase64: String,
     dialogue: String,
-    description: String
+    description: String,
+    chapterNumber: { type: Number, default: 1 }
   }, { _id: false })] }
 });
 
