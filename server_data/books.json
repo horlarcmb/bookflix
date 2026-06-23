@@ -616,8 +616,8 @@
     "id": 2131,
     "title": "The History of Herodotus",
     "author": "Herodotus",
-    "cover": "/covers/placeholder.png",
-    "gradient": "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+    "cover": "https://covers.openlibrary.org/b/id/11186716-L.jpg",
+    "gradient": null,
     "genre": [
       "History",
       "Historical"
@@ -646,8 +646,8 @@
     "id": 731,
     "title": "The Decline and Fall of the Roman Empire",
     "author": "Edward Gibbon",
-    "cover": "/covers/placeholder.png",
-    "gradient": "linear-gradient(135deg, #f093fb 0%, #f5576c 100%)",
+    "cover": "https://covers.openlibrary.org/b/id/12818610-L.jpg",
+    "gradient": null,
     "genre": [
       "History",
       "Historical"
@@ -676,8 +676,8 @@
     "id": 7142,
     "title": "The History of the Peloponnesian War",
     "author": "Thucydides",
-    "cover": "/covers/placeholder.png",
-    "gradient": "linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)",
+    "cover": "https://covers.openlibrary.org/b/id/12563365-L.jpg",
+    "gradient": null,
     "genre": [
       "History",
       "Historical"
@@ -706,8 +706,8 @@
     "id": 2800,
     "title": "The French Revolution",
     "author": "Thomas Carlyle",
-    "cover": "/covers/placeholder.png",
-    "gradient": "linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)",
+    "cover": "https://covers.openlibrary.org/b/id/13292404-L.jpg",
+    "gradient": null,
     "genre": [
       "History",
       "Historical"
@@ -736,8 +736,8 @@
     "id": 5344,
     "title": "Life of Abraham Lincoln",
     "author": "John Hugh Bowers",
-    "cover": "/covers/placeholder.png",
-    "gradient": "linear-gradient(135deg, #fa709a 0%, #fee140 100%)",
+    "cover": "https://covers.openlibrary.org/b/id/6252994-L.jpg",
+    "gradient": null,
     "genre": [
       "History",
       "Historical"
@@ -766,8 +766,8 @@
     "id": 1228,
     "title": "On the Origin of Species",
     "author": "Charles Darwin",
-    "cover": "/covers/placeholder.png",
-    "gradient": "linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%)",
+    "cover": "https://covers.openlibrary.org/b/id/13106511-L.jpg",
+    "gradient": null,
     "genre": [
       "Science & Technology",
       "Non-Fiction"
@@ -796,8 +796,8 @@
     "id": 30155,
     "title": "Relativity: The Special and General Theory",
     "author": "Albert Einstein",
-    "cover": "/covers/placeholder.png",
-    "gradient": "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+    "cover": "https://covers.openlibrary.org/b/id/12711674-L.jpg",
+    "gradient": null,
     "genre": [
       "Science & Technology",
       "Non-Fiction"
@@ -826,8 +826,8 @@
     "id": 1672,
     "title": "The Republic",
     "author": "Plato",
-    "cover": "/covers/placeholder.png",
-    "gradient": "linear-gradient(135deg, #fa709a 0%, #fee140 100%)",
+    "cover": "https://covers.openlibrary.org/b/id/12695508-L.jpg",
+    "gradient": null,
     "genre": [
       "Social Sciences",
       "Religion & Philosophy"
@@ -856,8 +856,8 @@
     "id": 1232,
     "title": "The Prince",
     "author": "Niccol\u00f2 Machiavelli",
-    "cover": "/covers/placeholder.png",
-    "gradient": "linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%)",
+    "cover": "https://covers.openlibrary.org/b/id/12543597-L.jpg",
+    "gradient": null,
     "genre": [
       "Social Sciences",
       "Religion & Philosophy",
@@ -887,8 +887,8 @@
     "id": 23202,
     "title": "Utopia",
     "author": "Thomas More",
-    "cover": "/covers/placeholder.png",
-    "gradient": "linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)",
+    "cover": "https://covers.openlibrary.org/b/id/12686884-L.jpg",
+    "gradient": null,
     "genre": [
       "Social Sciences",
       "Religion & Philosophy",
@@ -918,8 +918,8 @@
     "id": 14264,
     "title": "The Practice and Science of Drawing",
     "author": "Harold Speed",
-    "cover": "/covers/placeholder.png",
-    "gradient": "linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)",
+    "cover": "https://covers.openlibrary.org/b/id/11261358-L.jpg",
+    "gradient": null,
     "genre": [
       "Arts & Culture",
       "Non-Fiction"
@@ -948,8 +948,8 @@
     "id": 26543,
     "title": "A Complete History of Music",
     "author": "W. J. Baltzell",
-    "cover": "/covers/placeholder.png",
-    "gradient": "linear-gradient(135deg, #fa709a 0%, #fee140 100%)",
+    "cover": "https://covers.openlibrary.org/b/id/7222165-L.jpg",
+    "gradient": null,
     "genre": [
       "Arts & Culture",
       "History",
@@ -979,8 +979,8 @@
     "id": 41249,
     "title": "Shakespeare and Music",
     "author": "Edward W. Naylor",
-    "cover": "/covers/placeholder.png",
-    "gradient": "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+    "cover": "https://covers.openlibrary.org/b/id/8573214-L.jpg",
+    "gradient": null,
     "genre": [
       "Arts & Culture",
       "Literature"
@@ -1009,8 +1009,8 @@
     "id": 4363,
     "title": "Beyond Good and Evil",
     "author": "Friedrich Nietzsche",
-    "cover": "/covers/placeholder.png",
-    "gradient": "linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)",
+    "cover": "https://covers.openlibrary.org/b/id/12674962-L.jpg",
+    "gradient": null,
     "genre": [
       "Religion & Philosophy",
       "Non-Fiction"
@@ -1039,8 +1039,8 @@
     "id": 5827,
     "title": "The Problems of Philosophy",
     "author": "Bertrand Russell",
-    "cover": "/covers/placeholder.png",
-    "gradient": "linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)",
+    "cover": "https://covers.openlibrary.org/b/id/12818987-L.jpg",
+    "gradient": null,
     "genre": [
       "Religion & Philosophy",
       "Non-Fiction"
@@ -1069,8 +1069,8 @@
     "id": 2680,
     "title": "Meditations",
     "author": "Marcus Aurelius",
-    "cover": "/covers/placeholder.png",
-    "gradient": "linear-gradient(135deg, #fa709a 0%, #fee140 100%)",
+    "cover": "https://covers.openlibrary.org/b/id/12739345-L.jpg",
+    "gradient": null,
     "genre": [
       "Religion & Philosophy",
       "History"
@@ -1099,8 +1099,8 @@
     "id": 1998,
     "title": "Thus Spake Zarathustra",
     "author": "Friedrich Nietzsche",
-    "cover": "/covers/placeholder.png",
-    "gradient": "linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%)",
+    "cover": "https://covers.openlibrary.org/b/id/12738914-L.jpg",
+    "gradient": null,
     "genre": [
       "Religion & Philosophy",
       "Fiction"
@@ -1129,8 +1129,8 @@
     "id": 4280,
     "title": "The Critique of Pure Reason",
     "author": "Immanuel Kant",
-    "cover": "/covers/placeholder.png",
-    "gradient": "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+    "cover": "https://covers.openlibrary.org/b/id/12816997-L.jpg",
+    "gradient": null,
     "genre": [
       "Religion & Philosophy",
       "Non-Fiction"
@@ -1159,8 +1159,8 @@
     "id": 25267,
     "title": "Astronomy for Amateurs",
     "author": "Camille Flammarion",
-    "cover": "/covers/placeholder.png",
-    "gradient": "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+    "cover": "https://covers.openlibrary.org/b/id/6168925-L.jpg",
+    "gradient": null,
     "genre": [
       "Science & Technology",
       "Non-Fiction"
@@ -1189,8 +1189,8 @@
     "id": 26503,
     "title": "The Fairy-Land of Science",
     "author": "Arabella B. Buckley",
-    "cover": "/covers/placeholder.png",
-    "gradient": "linear-gradient(135deg, #f093fb 0%, #f5576c 100%)",
+    "cover": "https://covers.openlibrary.org/b/id/10129061-L.jpg",
+    "gradient": null,
     "genre": [
       "Science & Technology",
       "Non-Fiction"
@@ -1219,8 +1219,8 @@
     "id": 32448,
     "title": "Thoughts on Art and Life",
     "author": "Leonardo da Vinci",
-    "cover": "/covers/placeholder.png",
-    "gradient": "linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%)",
+    "cover": "https://covers.openlibrary.org/b/id/9720042-L.jpg",
+    "gradient": null,
     "genre": [
       "Arts & Culture",
       "Non-Fiction"
@@ -1249,8 +1249,8 @@
     "id": 29393,
     "title": "Introduction to Science",
     "author": "J. Arthur Thomson",
-    "cover": "/covers/placeholder.png",
-    "gradient": "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+    "cover": "https://covers.openlibrary.org/b/id/10214309-L.jpg",
+    "gradient": null,
     "genre": [
       "Science & Technology",
       "Non-Fiction"
@@ -1279,8 +1279,8 @@
     "id": 15264,
     "title": "The Decoration of Houses",
     "author": "Edith Wharton and Ogden Codman",
-    "cover": "/covers/placeholder.png",
-    "gradient": "linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)",
+    "cover": "https://covers.openlibrary.org/b/id/10860882-L.jpg",
+    "gradient": null,
     "genre": [
       "Arts & Culture",
       "Non-Fiction"
@@ -1309,8 +1309,8 @@
     "id": 61,
     "title": "The Communist Manifesto",
     "author": "Karl Marx and Friedrich Engels",
-    "cover": "/covers/placeholder.png",
-    "gradient": "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+    "cover": "https://covers.openlibrary.org/b/id/12771509-L.jpg",
+    "gradient": null,
     "genre": [
       "Social Sciences",
       "Non-Fiction"
@@ -1339,8 +1339,8 @@
     "id": 71,
     "title": "Civil Disobedience",
     "author": "Henry David Thoreau",
-    "cover": "/covers/placeholder.png",
-    "gradient": "linear-gradient(135deg, #f093fb 0%, #f5576c 100%)",
+    "cover": "https://covers.openlibrary.org/b/id/8302061-L.jpg",
+    "gradient": null,
     "genre": [
       "Social Sciences",
       "Non-Fiction"
