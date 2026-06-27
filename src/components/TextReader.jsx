@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { FiChevronLeft, FiChevronRight, FiSettings, FiSun, FiMoon } from 'react-icons/fi';
+import { FiChevronLeft, FiChevronRight, FiSettings, FiSun, FiMoon, FiVolume2, FiPlay, FiPause, FiSquare, FiX, FiActivity } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
 import { useBook } from '../context/BookContext';
 import { sampleChapterContent } from '../data/books';
@@ -29,7 +29,120 @@ export default function TextReader({ book }) {
   if (currentChapter !== prevChapter) {
     setPrevChapter(currentChapter);
     setProgress(0);
+    setAiSummary(null);
+    setVoicePlaying(false);
+    setVoicePaused(false);
   }
+
+  // AI Chapter Summary & TTS voice states
+  const [aiSummary, setAiSummary] = useState(null);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [voicePlaying, setVoicePlaying] = useState(false);
+  const [voicePaused, setVoicePaused] = useState(false);
+  const synthRef = useRef(typeof window !== 'undefined' ? window.speechSynthesis : null);
+  const utteranceRef = useRef(null);
+
+  // Clear speech when switching chapters or unmounting
+  useEffect(() => {
+    const synth = synthRef.current;
+    if (synth) {
+      synth.cancel();
+    }
+    return () => {
+      if (synth) {
+        synth.cancel();
+      }
+    };
+  }, [currentChapter]);
+
+  const handleSummarizeChapter = async () => {
+    if (aiSummary) {
+      // Toggle summary off
+      setAiSummary(null);
+      if (synthRef.current) {
+        synthRef.current.cancel();
+      }
+      setVoicePlaying(false);
+      setVoicePaused(false);
+      return;
+    }
+
+    setAiLoading(true);
+    try {
+      const text = getChapterText();
+      const res = await fetch('/api/nlp/summarize', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ text })
+      });
+
+      if (!res.ok) throw new Error('Failed to generate summary');
+      const data = await res.json();
+      setAiSummary(data);
+    } catch (err) {
+      console.error(err);
+      alert('Failed to generate AI summary.');
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  const handlePlayVoiceSummary = () => {
+    if (!aiSummary || !aiSummary.summary || !synthRef.current) return;
+
+    if (voicePlaying && voicePaused) {
+      synthRef.current.resume();
+      setVoicePaused(false);
+      return;
+    }
+
+    if (voicePlaying) {
+      synthRef.current.pause();
+      setVoicePaused(true);
+      return;
+    }
+
+    synthRef.current.cancel();
+
+    const textToSpeak = `Summary of ${getChapterTitle()}. ${aiSummary.summary} Key points are: ${aiSummary.keyPoints.join('. ')}`;
+    const utterance = new SpeechSynthesisUtterance(textToSpeak);
+    utteranceRef.current = utterance;
+
+    const voices = synthRef.current.getVoices();
+    const premiumVoice = voices.find(v => v.lang.startsWith('en') && v.name.toLowerCase().includes('google')) ||
+                        voices.find(v => v.lang.startsWith('en')) ||
+                        voices[0];
+
+    if (premiumVoice) {
+      utterance.voice = premiumVoice;
+    }
+
+    utterance.rate = 0.95;
+
+    utterance.onend = () => {
+      setVoicePlaying(false);
+      setVoicePaused(false);
+    };
+
+    utterance.onerror = () => {
+      setVoicePlaying(false);
+      setVoicePaused(false);
+    };
+
+    setVoicePlaying(true);
+    setVoicePaused(false);
+    synthRef.current.speak(utterance);
+  };
+
+  const handleStopVoice = () => {
+    if (synthRef.current) {
+      synthRef.current.cancel();
+    }
+    setVoicePlaying(false);
+    setVoicePaused(false);
+  };
 
   const articleRef = useRef(null);
 
@@ -182,6 +295,137 @@ export default function TextReader({ book }) {
         {book.isAIGenerated && (
           <div className="ai-badge" style={{ display: 'inline-block', fontSize: '0.85rem', padding: '6px 12px', background: 'linear-gradient(135deg, #00d2fe, #4facfe)', color: '#fff', borderRadius: '4px', marginBottom: 'var(--space-md)', fontWeight: 600 }}>
             🤖 AI AUTHOR DISCLOSURE: Synthesized Narrative
+          </div>
+        )}
+
+        {/* AI smart tools panel trigger */}
+        <div style={{ display: 'flex', gap: '8px', marginBottom: 'var(--space-lg)' }} onClick={(e) => e.stopPropagation()}>
+          <button 
+            type="button" 
+            className="btn btn-primary btn-sm"
+            onClick={handleSummarizeChapter}
+            style={{ 
+              display: 'inline-flex', 
+              alignItems: 'center', 
+              gap: '6px', 
+              padding: '8px 16px', 
+              fontSize: '0.8rem',
+              borderRadius: '20px',
+              fontWeight: 600,
+              background: 'linear-gradient(135deg, #e50914, #ff4e50)',
+              border: 'none',
+              boxShadow: '0 4px 12px rgba(229, 9, 20, 0.2)',
+              cursor: 'pointer'
+            }}
+            disabled={aiLoading}
+          >
+            {aiLoading ? (
+              <>
+                <FiActivity style={{ animation: 'spin 1s linear infinite' }} />
+                Analyzing Chapter...
+              </>
+            ) : (
+              <>
+                <span>✨ AI Chapter Insights</span>
+              </>
+            )}
+          </button>
+        </div>
+
+        {/* AI Summary Card */}
+        {aiSummary && (
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: theme === 'dark' ? 'rgba(20, 20, 20, 0.85)' : theme === 'sepia' ? '#ebdcae' : '#f5f5f5',
+              border: '1px solid var(--border)',
+              borderRadius: 'var(--radius-lg)',
+              padding: 'var(--space-lg)',
+              marginBottom: 'var(--space-xl)',
+              boxShadow: 'var(--shadow-md), 0 0 15px rgba(229, 9, 20, 0.05)',
+              backdropFilter: 'blur(10px)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '12px',
+              fontSize: '0.95rem',
+              lineHeight: '1.5'
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: '8px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 700, color: 'var(--accent)', fontFamily: 'var(--font-display)' }}>
+                <span>✨ AI Chapter Insights</span>
+              </div>
+              <button 
+                type="button"
+                className="btn btn-ghost btn-sm"
+                onClick={() => setAiSummary(null)}
+                style={{ color: 'var(--text-tertiary)', padding: '4px' }}
+              >
+                <FiX />
+              </button>
+            </div>
+
+            <div>
+              <h4 style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 600, marginBottom: '6px' }}>Summary Abstract</h4>
+              <p style={{ color: 'var(--text-primary)', margin: 0 }}>{aiSummary.summary}</p>
+            </div>
+
+            {aiSummary.keyPoints && aiSummary.keyPoints.length > 0 && (
+              <div>
+                <h4 style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 600, marginBottom: '6px' }}>Key Takeaways</h4>
+                <ul style={{ paddingLeft: '20px', margin: 0, color: 'var(--text-primary)', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  {aiSummary.keyPoints.map((pt, i) => (
+                    <li key={i}>{pt}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            <div style={{ display: 'flex', gap: '10px', alignItems: 'center', borderTop: '1px solid var(--border)', paddingTop: '10px', marginTop: '4px' }}>
+              <button
+                type="button"
+                className="btn btn-outline btn-sm"
+                onClick={handlePlayVoiceSummary}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  borderColor: voicePlaying ? 'var(--success)' : 'var(--border)',
+                  color: voicePlaying ? 'var(--success)' : 'var(--text-primary)',
+                  cursor: 'pointer'
+                }}
+              >
+                {voicePlaying ? (
+                  voicePaused ? (
+                    <><FiPlay /> Resume Audio Summary</>
+                  ) : (
+                    <><FiPause /> Pause Audio Summary</>
+                  )
+                ) : (
+                  <><FiVolume2 /> Neural Voice Summary</>
+                )}
+              </button>
+
+              {voicePlaying && (
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-sm"
+                  onClick={handleStopVoice}
+                  style={{ color: 'var(--error)', cursor: 'pointer' }}
+                >
+                  <FiSquare /> Stop
+                </button>
+              )}
+
+              {voicePlaying && !voicePaused && (
+                <div style={{ display: 'flex', gap: '2px', alignItems: 'center', marginLeft: '10px', height: '18px' }}>
+                  <div style={{ width: '3px', height: '15px', background: 'var(--success)', borderRadius: '2px', animation: 'eq-bar 0.8s ease-in-out infinite alternate' }} />
+                  <div style={{ width: '3px', height: '8px', background: 'var(--success)', borderRadius: '2px', animation: 'eq-bar 0.5s ease-in-out infinite alternate 0.2s' }} />
+                  <div style={{ width: '3px', height: '18px', background: 'var(--success)', borderRadius: '2px', animation: 'eq-bar 0.7s ease-in-out infinite alternate 0.4s' }} />
+                  <div style={{ width: '3px', height: '10px', background: 'var(--success)', borderRadius: '2px', animation: 'eq-bar 0.6s ease-in-out infinite alternate 0.1s' }} />
+                </div>
+              )}
+            </div>
           </div>
         )}
 

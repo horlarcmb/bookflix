@@ -141,10 +141,75 @@ export default function AdminDashboard() {
   const handleChapterFileChange = (index, e) => {
     const file = e.target.files[0];
     if (!file) return;
+    
+    if (file.name.toLowerCase().endsWith('.epub')) {
+      const confirmImport = window.confirm(
+        `You selected an EPUB file ("${file.name}"). Would you like to import all chapters from this EPUB? This will replace the current chapters.`
+      );
+      if (!confirmImport) {
+        e.target.value = '';
+        return;
+      }
+      
+      setParsingStatus('Uploading and parsing EPUB file...');
+      const reader = new FileReader();
+      reader.onloadend = async () => {
+        const base64Data = reader.result;
+        try {
+          const token = localStorage.getItem('bookflix_token');
+          const res = await fetch('/api/admin/parse-epub', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': token ? `Bearer ${token}` : ''
+            },
+            body: JSON.stringify({
+              fileBase64: base64Data,
+              filename: file.name
+            })
+          });
+          
+          if (!res.ok) {
+            const errData = await res.json();
+            throw new Error(errData.message || 'Failed to parse EPUB');
+          }
+          
+          const data = await res.json();
+          
+          if (data.chapters && data.chapters.length > 0) {
+            const mapped = data.chapters.map((ch, idx) => ({
+              id: Date.now() + idx,
+              title: ch.title || `Chapter ${idx + 1}`,
+              content: ch.content || '',
+              pages: []
+            }));
+            setFormChapters(mapped);
+            setParsingStatus(`Successfully imported ${data.chapters.length} chapters from "${data.title}"!`);
+          } else {
+            setParsingStatus('EPUB parsed, but no chapters were found.');
+          }
+        } catch (err) {
+          console.error(err);
+          setParsingStatus(`Error: ${err.message}`);
+          alert(`Failed to import EPUB: ${err.message}`);
+        }
+      };
+      reader.readAsDataURL(file);
+      e.target.value = '';
+      return;
+    }
+    
     const reader = new FileReader();
     reader.onload = (event) => {
       const text = event.target.result;
       handleUpdateChapter(index, 'content', text.trim());
+      const filename = file.name.substring(0, file.name.lastIndexOf('.')) || file.name;
+      setFormChapters(prev => prev.map((ch, idx) => {
+        if (idx === index && (!ch.title.trim() || ch.title.startsWith('Chapter '))) {
+          return { ...ch, title: filename };
+        }
+        return ch;
+      }));
     };
     reader.readAsText(file);
   };
@@ -353,6 +418,65 @@ export default function AdminDashboard() {
     const reader = new FileReader();
     reader.onloadend = () => {
       setCoverBase64(reader.result);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  // Import whole EPUB file dynamically
+  const handleEpubImport = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    setParsingStatus('Uploading and parsing EPUB file...');
+    
+    const reader = new FileReader();
+    reader.onloadend = async () => {
+      const base64Data = reader.result;
+      
+      try {
+        const token = localStorage.getItem('bookflix_token');
+        const res = await fetch('/api/admin/parse-epub', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': token ? `Bearer ${token}` : ''
+          },
+          body: JSON.stringify({
+            fileBase64: base64Data,
+            filename: file.name
+          })
+        });
+        
+        if (!res.ok) {
+          const errData = await res.json();
+          throw new Error(errData.message || 'Failed to parse EPUB');
+        }
+        
+        const data = await res.json();
+        
+        // Auto-populate form
+        setTitle(data.title || '');
+        setAuthor(data.author || '');
+        if (data.cover) {
+          setCoverBase64(data.cover);
+        }
+        if (data.chapters && data.chapters.length > 0) {
+          const mapped = data.chapters.map((ch, idx) => ({
+            id: Date.now() + idx,
+            title: ch.title || `Chapter ${idx + 1}`,
+            content: ch.content || '',
+            pages: []
+          }));
+          setFormChapters(mapped);
+          setParsingStatus(`Successfully imported ${data.chapters.length} chapters from "${data.title}"!`);
+        } else {
+          setParsingStatus('EPUB parsed, but no chapters were found.');
+        }
+      } catch (err) {
+        console.error(err);
+        setParsingStatus(`Error: ${err.message}`);
+        alert(`Failed to import EPUB: ${err.message}`);
+      }
     };
     reader.readAsDataURL(file);
   };
@@ -890,6 +1014,22 @@ export default function AdminDashboard() {
               ) : (
                 <form onSubmit={handleUploadSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                   
+                  {/* EPUB Fast Import */}
+                  <div className="form-group" style={{ background: 'rgba(229,9,20,0.06)', border: '1px dashed var(--accent)', padding: '16px', borderRadius: 'var(--radius-md)', textAlign: 'center' }}>
+                    <label style={{ display: 'block', marginBottom: '8px', fontWeight: 700, color: 'var(--accent)', cursor: 'pointer' }}>
+                      <FiUpload style={{ marginRight: '6px' }} /> Fast Import from EPUB (.epub)
+                      <input 
+                        type="file" 
+                        accept=".epub" 
+                        onChange={handleEpubImport} 
+                        style={{ display: 'none' }}
+                      />
+                    </label>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-tertiary)' }}>
+                      Automatically extracts Title, Author, Cover, and all Chapters.
+                    </div>
+                  </div>
+
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                     <div className="form-group">
                       <label>Title *</label>

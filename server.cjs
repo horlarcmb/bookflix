@@ -4,6 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const AdmZip = require('adm-zip');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -1024,6 +1025,264 @@ app.get('/api/admin/telemetry', authenticateToken, requireAdmin, async (req, res
     res.status(500).json({ message: 'Server error' });
   }
 });
+
+// Helper: Clean HTML tags for text output
+function cleanHtmlTags(html) {
+  if (!html) return '';
+  let clean = html.replace(/<(script|style).*?>[\s\S]*?<\/\1>/gi, '');
+  clean = clean.replace(/<[^>]*>/g, ' ');
+  clean = clean
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&amp;/g, '&')
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'");
+  // Replace multiple spaces and newlines
+  clean = clean.replace(/\s+/g, ' ');
+  return clean.trim();
+}
+
+// Helper: Extract EPUB cover image if available
+function extractEpubCover(zip, opfXml, baseDir) {
+  try {
+    const coverMetaMatch = opfXml.match(/<meta[^>]*name="cover"[^>]*content="([^"]+)"/i) || 
+                           opfXml.match(/<meta[^>]*content="([^"]+)"[^>]*name="cover"/i);
+    let coverId = coverMetaMatch ? coverMetaMatch[1] : null;
+    
+    let coverHref = null;
+    if (coverId) {
+      const coverItemMatch = opfXml.match(new RegExp(`<item[^>]*id="${coverId}"[^>]*href="([^"]+)"`, 'i'));
+      if (coverItemMatch) {
+        coverHref = coverItemMatch[1];
+      }
+    }
+    
+    if (!coverHref) {
+      const itemMatches = opfXml.matchAll(/<item\s+[^>]*href="([^"]+)"[^>]*media-type="image\/[^"]+"[^>]*>/gi);
+      for (const m of itemMatches) {
+        const href = m[1];
+        if (href.toLowerCase().includes('cover')) {
+          coverHref = href;
+          break;
+        }
+      }
+    }
+    
+    if (coverHref) {
+      const fullCoverPath = baseDir ? path.join(baseDir, coverHref).replace(/\\/g, '/') : coverHref;
+      const entry = zip.getEntry(fullCoverPath);
+      if (entry) {
+        const coverBuffer = entry.getData();
+        const ext = coverHref.split('.').pop().toLowerCase();
+        const mime = ext === 'png' ? 'image/png' : 'image/jpeg';
+        return `data:${mime};base64,${coverBuffer.toString('base64')}`;
+      }
+    }
+  } catch (e) {
+    console.error('Error extracting cover:', e);
+  }
+  return null;
+}
+
+// Extractive NLP Summarization Model
+function summarizeTextNLP(text) {
+  if (!text || text.trim().length === 0) {
+    return {
+      summary: "This chapter has no readable text content.",
+      keyPoints: ["No content available."]
+    };
+  }
+
+  // Split into sentences
+  const sentences = text
+    .replace(/([.!?])\s*(?=[A-Z])/g, "$1|")
+    .split("|")
+    .map(s => s.trim())
+    .filter(s => s.length > 15);
+
+  if (sentences.length <= 3) {
+    return {
+      summary: text.substring(0, 500) + (text.length > 500 ? '...' : ''),
+      keyPoints: sentences.length > 0 ? sentences : [text.substring(0, 100)]
+    };
+  }
+
+  const stopWords = new Set([
+    "the", "a", "an", "and", "or", "but", "is", "are", "was", "were", "be", "been", "being",
+    "in", "on", "at", "to", "for", "with", "by", "of", "from", "up", "about", "into", "over", "after",
+    "i", "you", "he", "she", "it", "we", "they", "me", "him", "her", "us", "them", "my", "your", "his",
+    "their", "our", "its", "this", "that", "these", "those", "have", "has", "had", "do", "does", "did",
+    "can", "could", "will", "would", "shall", "should", "may", "might", "must", "then", "there", "when",
+    "where", "why", "how", "all", "any", "both", "each", "few", "more", "most", "some", "such", "no", "nor",
+    "not", "only", "own", "same", "so", "than", "too", "very", "say", "says", "said", "also", "just", "like"
+  ]);
+
+  const wordFreq = {};
+  const words = text.toLowerCase().match(/[a-z]{3,}/g) || [];
+  for (const w of words) {
+    if (!stopWords.has(w)) {
+      wordFreq[w] = (wordFreq[w] || 0) + 1;
+    }
+  }
+
+  const sentenceScores = sentences.map((sentence, index) => {
+    const sWords = sentence.toLowerCase().match(/[a-z]{3,}/g) || [];
+    let score = 0;
+    for (const w of sWords) {
+      if (wordFreq[w]) {
+        score += wordFreq[w];
+      }
+    }
+    const normalizedScore = sWords.length > 0 ? score / sWords.length : 0;
+    return { sentence, index, score: normalizedScore };
+  });
+
+  // Pick top 4 sentences
+  const topSentences = [...sentenceScores]
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 4);
+
+  // Preserve reading order
+  topSentences.sort((a, b) => a.index - b.index);
+  const summaryParagraph = topSentences.map(s => s.sentence).join(" ");
+
+  // Select 3 key bullet points
+  const bulletSentences = [...sentenceScores]
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 3)
+    .map(s => s.sentence);
+
+  return {
+    summary: summaryParagraph,
+    keyPoints: bulletSentences
+  };
+}
+
+// --- EPUB PARSER ENDPOINT ---
+app.post('/api/admin/parse-epub', authenticateToken, requireAdmin, async (req, res) => {
+  const { fileBase64, filename } = req.body;
+  if (!fileBase64) {
+    return res.status(400).json({ message: 'EPUB file base64 data required' });
+  }
+
+  try {
+    const buffer = Buffer.from(fileBase64.split(',')[1] || fileBase64, 'base64');
+    const zip = new AdmZip(buffer);
+    
+    // Read container.xml
+    const containerEntry = zip.getEntry('META-INF/container.xml');
+    if (!containerEntry) {
+      return res.status(400).json({ message: 'Invalid EPUB: container.xml missing' });
+    }
+    const containerXml = containerEntry.getData().toString('utf8');
+    
+    const opfPathMatch = containerXml.match(/full-path="([^"]+)"/);
+    if (!opfPathMatch) {
+      return res.status(400).json({ message: 'Invalid EPUB: OPF path missing in container.xml' });
+    }
+    
+    const opfPath = opfPathMatch[1];
+    const baseDir = opfPath.includes('/') ? opfPath.substring(0, opfPath.lastIndexOf('/')) : '';
+    
+    const opfEntry = zip.getEntry(opfPath);
+    if (!opfEntry) {
+      return res.status(400).json({ message: 'Invalid EPUB: OPF file missing' });
+    }
+    const opfXml = opfEntry.getData().toString('utf8');
+    
+    // Extract metadata
+    const titleMatch = opfXml.match(/<dc:title[^>]*>([\s\S]*?)<\/dc:title>/i);
+    const authorMatch = opfXml.match(/<dc:creator[^>]*>([\s\S]*?)<\/dc:creator>/i);
+    const title = titleMatch ? cleanHtmlTags(titleMatch[1]) : filename.replace(/\.[^/.]+$/, "");
+    const author = authorMatch ? cleanHtmlTags(authorMatch[1]) : "Unknown Author";
+    
+    // Extract manifest items
+    const manifest = {};
+    const itemMatches = opfXml.matchAll(/<item\s+[^>]*id="([^"]+)"\s+[^>]*href="([^"]+)"[^>]*>/gi);
+    for (const match of itemMatches) {
+      manifest[match[1]] = match[2];
+    }
+    
+    // Spine items (Reading order)
+    const spineItems = [];
+    const spineMatches = opfXml.matchAll(/<itemref\s+[^>]*idref="([^"]+)"[^>]*>/gi);
+    for (const match of spineMatches) {
+      const idref = match[1];
+      const href = manifest[idref];
+      if (href) {
+        const fullHref = baseDir ? `${baseDir}/${href}`.replace(/\\/g, '/') : href;
+        const cleanHref = fullHref.split('#')[0];
+        if (!spineItems.includes(cleanHref)) {
+          spineItems.push(cleanHref);
+        }
+      }
+    }
+
+    // Extract cover image
+    const cover = extractEpubCover(zip, opfXml, baseDir);
+
+    // Extract chapters content
+    const chapters = [];
+    let chapterIdx = 1;
+
+    for (const cleanHref of spineItems) {
+      const entry = zip.getEntry(cleanHref);
+      if (!entry) continue;
+
+      const htmlContent = entry.getData().toString('utf8');
+      const text = cleanHtmlTags(htmlContent);
+      if (text.length < 30) continue; // skip blank spine items / metadata lists
+
+      // Find headings
+      let chapterTitle = '';
+      const h2Match = htmlContent.match(/<h2[^>]*>([\s\S]*?)<\/h2>/i);
+      const h1Match = htmlContent.match(/<h1[^>]*>([\s\S]*?)<\/h1>/i);
+      if (h2Match) {
+        chapterTitle = cleanHtmlTags(h2Match[1]);
+      } else if (h1Match) {
+        chapterTitle = cleanHtmlTags(h1Match[1]);
+      }
+
+      if (!chapterTitle || chapterTitle.length > 80 || /^[0-9]+$/.test(chapterTitle)) {
+        chapterTitle = `Chapter ${chapterIdx}`;
+      }
+
+      chapters.push({
+        title: chapterTitle,
+        content: text
+      });
+      chapterIdx++;
+    }
+
+    res.json({
+      title,
+      author,
+      cover,
+      chapters
+    });
+  } catch (err) {
+    console.error('Error parsing EPUB:', err);
+    res.status(500).json({ message: 'Failed to parse EPUB file: ' + err.message });
+  }
+});
+
+// --- NLP SUMMARIZATION ENDPOINT ---
+app.post('/api/nlp/summarize', async (req, res) => {
+  const { text } = req.body;
+  if (!text) {
+    return res.status(400).json({ message: 'Text body required for summarization' });
+  }
+
+  try {
+    const summaryData = summarizeTextNLP(text);
+    res.json(summaryData);
+  } catch (err) {
+    console.error('Error in NLP summary:', err);
+    res.status(500).json({ message: 'Failed to generate NLP summary' });
+  }
+});
+
 
 
 // Serve static files from the React app build if dist exists

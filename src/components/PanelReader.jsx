@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { FiChevronLeft } from 'react-icons/fi';
+import { FiChevronLeft, FiChevronRight, FiSettings, FiActivity, FiVolume2, FiPlay, FiPause, FiSquare, FiX } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
 import { useBook } from '../context/BookContext';
 
@@ -37,6 +37,137 @@ export default function PanelReader({ book }) {
     setPrevChapter(currentChapter);
     setCurrentPage(1);
   }
+
+  // AI Chapter Summary & TTS voice states
+  const [aiSummary, setAiSummary] = useState(null);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [voicePlaying, setVoicePlaying] = useState(false);
+  const [voicePaused, setVoicePaused] = useState(false);
+  const synthRef = useRef(typeof window !== 'undefined' ? window.speechSynthesis : null);
+  const utteranceRef = useRef(null);
+
+  // Clear speech and reset AI summary when switching chapters or unmounting
+  useEffect(() => {
+    const synth = synthRef.current;
+    if (synth) {
+      synth.cancel();
+    }
+    setAiSummary(null);
+    setVoicePlaying(false);
+    setVoicePaused(false);
+    return () => {
+      if (synth) {
+        synth.cancel();
+      }
+    };
+  }, [currentChapter]);
+
+  const getChapterTitle = () => {
+    return `Chapter ${currentChapter}`;
+  };
+
+  const getChapterText = () => {
+    const pagesList = getPagesList();
+    if (pagesList && pagesList.length > 0) {
+      return pagesList
+        .map((p, i) => {
+          const dialogueText = p.dialogue ? `Dialogue: "${p.dialogue}"` : '';
+          const descText = p.description ? `Action: ${p.description}` : '';
+          return `${p.title || `Panel ${i + 1}`}. ${dialogueText} ${descText}`;
+        })
+        .join('\n\n');
+    }
+    return "This chapter consists of visual panels with no readable text.";
+  };
+
+  const handleSummarizeChapter = async () => {
+    if (aiSummary) {
+      // Toggle summary off
+      setAiSummary(null);
+      if (synthRef.current) {
+        synthRef.current.cancel();
+      }
+      setVoicePlaying(false);
+      setVoicePaused(false);
+      return;
+    }
+
+    setAiLoading(true);
+    try {
+      const text = getChapterText();
+      const res = await fetch('/api/nlp/summarize', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ text })
+      });
+
+      if (!res.ok) throw new Error('Failed to generate summary');
+      const data = await res.json();
+      setAiSummary(data);
+    } catch (err) {
+      console.error(err);
+      alert('Failed to generate AI summary.');
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  const handlePlayVoiceSummary = () => {
+    if (!aiSummary || !aiSummary.summary || !synthRef.current) return;
+
+    if (voicePlaying && voicePaused) {
+      synthRef.current.resume();
+      setVoicePaused(false);
+      return;
+    }
+
+    if (voicePlaying) {
+      synthRef.current.pause();
+      setVoicePaused(true);
+      return;
+    }
+
+    synthRef.current.cancel();
+
+    const textToSpeak = `Summary of ${getChapterTitle()}. ${aiSummary.summary} Key points are: ${aiSummary.keyPoints.join('. ')}`;
+    const utterance = new SpeechSynthesisUtterance(textToSpeak);
+    utteranceRef.current = utterance;
+
+    const voices = synthRef.current.getVoices();
+    const premiumVoice = voices.find(v => v.lang.startsWith('en') && v.name.toLowerCase().includes('google')) ||
+                        voices.find(v => v.lang.startsWith('en')) ||
+                        voices[0];
+
+    if (premiumVoice) {
+      utterance.voice = premiumVoice;
+    }
+
+    utterance.rate = 0.95;
+
+    utterance.onend = () => {
+      setVoicePlaying(false);
+      setVoicePaused(false);
+    };
+
+    utterance.onerror = () => {
+      setVoicePlaying(false);
+      setVoicePaused(false);
+    };
+
+    setVoicePlaying(true);
+    setVoicePaused(false);
+    synthRef.current.speak(utterance);
+  };
+
+  const handleStopVoice = () => {
+    if (synthRef.current) {
+      synthRef.current.cancel();
+    }
+    setVoicePlaying(false);
+    setVoicePaused(false);
+  };
 
   // Load content from IndexedDB on mount/book change
   useEffect(() => {
@@ -234,6 +365,141 @@ export default function PanelReader({ book }) {
              VERTICAL WEBTOON SCROLL FORMAT
              ========================================== */
           <div style={{ width: '100%', maxWidth: '600px', display: 'flex', flexDirection: 'column', gap: '12px', transform: `scale(${zoomLevel / 100})`, transformOrigin: 'top center' }}>
+            
+            {/* AI smart tools panel trigger */}
+            <div style={{ display: 'flex', gap: '8px', marginBottom: 'var(--space-sm)' }} onClick={(e) => e.stopPropagation()}>
+              <button 
+                type="button" 
+                className="btn btn-primary btn-sm"
+                onClick={handleSummarizeChapter}
+                style={{ 
+                  display: 'inline-flex', 
+                  alignItems: 'center', 
+                  gap: '6px', 
+                  padding: '8px 16px', 
+                  fontSize: '0.8rem',
+                  borderRadius: '20px',
+                  fontWeight: 600,
+                  background: 'linear-gradient(135deg, #e50914, #ff4e50)',
+                  border: 'none',
+                  boxShadow: '0 4px 12px rgba(229, 9, 20, 0.2)',
+                  cursor: 'pointer'
+                }}
+                disabled={aiLoading}
+              >
+                {aiLoading ? (
+                  <>
+                    <FiActivity style={{ animation: 'spin 1s linear infinite' }} />
+                    Analyzing Chapter...
+                  </>
+                ) : (
+                  <>
+                    <span>✨ AI Chapter Insights</span>
+                  </>
+                )}
+              </button>
+            </div>
+
+            {/* AI Summary Card */}
+            {aiSummary && (
+              <div 
+                onClick={(e) => e.stopPropagation()}
+                style={{
+                  background: 'rgba(20, 20, 20, 0.85)',
+                  border: '1px solid #222',
+                  borderRadius: 'var(--radius-lg)',
+                  padding: 'var(--space-lg)',
+                  marginBottom: 'var(--space-md)',
+                  boxShadow: 'var(--shadow-md), 0 0 15px rgba(229, 9, 20, 0.05)',
+                  backdropFilter: 'blur(10px)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '12px',
+                  fontSize: '0.95rem',
+                  lineHeight: '1.5',
+                  color: '#fff',
+                  textAlign: 'left'
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #222', paddingBottom: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 700, color: 'var(--accent)', fontFamily: 'var(--font-display)' }}>
+                    <span>✨ AI Chapter Insights</span>
+                  </div>
+                  <button 
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    onClick={() => setAiSummary(null)}
+                    style={{ color: '#888', padding: '4px' }}
+                  >
+                    <FiX />
+                  </button>
+                </div>
+
+                <div>
+                  <h4 style={{ fontSize: '0.9rem', color: '#aaa', fontWeight: 600, marginBottom: '6px' }}>Summary Abstract</h4>
+                  <p style={{ color: '#eee', margin: 0 }}>{aiSummary.summary}</p>
+                </div>
+
+                {aiSummary.keyPoints && aiSummary.keyPoints.length > 0 && (
+                  <div>
+                    <h4 style={{ fontSize: '0.9rem', color: '#aaa', fontWeight: 600, marginBottom: '6px' }}>Key Takeaways</h4>
+                    <ul style={{ paddingLeft: '20px', margin: 0, color: '#eee', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      {aiSummary.keyPoints.map((pt, i) => (
+                        <li key={i}>{pt}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                <div style={{ display: 'flex', gap: '10px', alignItems: 'center', borderTop: '1px solid #222', paddingTop: '10px', marginTop: '4px' }}>
+                  <button
+                    type="button"
+                    className="btn btn-outline btn-sm"
+                    onClick={handlePlayVoiceSummary}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      borderColor: voicePlaying ? 'var(--success)' : '#333',
+                      color: voicePlaying ? 'var(--success)' : '#fff',
+                      cursor: 'pointer',
+                      background: 'transparent'
+                    }}
+                  >
+                    {voicePlaying ? (
+                      voicePaused ? (
+                        <><FiPlay /> Resume Audio Summary</>
+                      ) : (
+                        <><FiPause /> Pause Audio Summary</>
+                      )
+                    ) : (
+                      <><FiVolume2 /> Neural Voice Summary</>
+                    )}
+                  </button>
+
+                  {voicePlaying && (
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-sm"
+                      onClick={handleStopVoice}
+                      style={{ color: 'var(--error)', cursor: 'pointer' }}
+                    >
+                      <FiSquare /> Stop
+                    </button>
+                  )}
+
+                  {voicePlaying && !voicePaused && (
+                    <div style={{ display: 'flex', gap: '2px', alignItems: 'center', marginLeft: '10px', height: '18px' }}>
+                      <div style={{ width: '3px', height: '15px', background: 'var(--success)', borderRadius: '2px', animation: 'eq-bar 0.8s ease-in-out infinite alternate' }} />
+                      <div style={{ width: '3px', height: '8px', background: 'var(--success)', borderRadius: '2px', animation: 'eq-bar 0.5s ease-in-out infinite alternate 0.2s' }} />
+                      <div style={{ width: '3px', height: '18px', background: 'var(--success)', borderRadius: '2px', animation: 'eq-bar 0.7s ease-in-out infinite alternate 0.4s' }} />
+                      <div style={{ width: '3px', height: '10px', background: 'var(--success)', borderRadius: '2px', animation: 'eq-bar 0.6s ease-in-out infinite alternate 0.1s' }} />
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
             {pages.map((page, i) => (
               <div key={i} style={{ width: '100%' }}>
                 {page.imageBase64 ? (
@@ -316,6 +582,142 @@ export default function PanelReader({ book }) {
              PAGE-BY-PAGE SLIDING FORMAT
              ========================================== */
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px' }}>
+            
+            {/* AI smart tools panel trigger */}
+            <div style={{ display: 'flex', gap: '8px', marginBottom: 'var(--space-sm)' }} onClick={(e) => e.stopPropagation()}>
+              <button 
+                type="button" 
+                className="btn btn-primary btn-sm"
+                onClick={handleSummarizeChapter}
+                style={{ 
+                  display: 'inline-flex', 
+                  alignItems: 'center', 
+                  gap: '6px', 
+                  padding: '8px 16px', 
+                  fontSize: '0.8rem',
+                  borderRadius: '20px',
+                  fontWeight: 600,
+                  background: 'linear-gradient(135deg, #e50914, #ff4e50)',
+                  border: 'none',
+                  boxShadow: '0 4px 12px rgba(229, 9, 20, 0.2)',
+                  cursor: 'pointer'
+                }}
+                disabled={aiLoading}
+              >
+                {aiLoading ? (
+                  <>
+                    <FiActivity style={{ animation: 'spin 1s linear infinite' }} />
+                    Analyzing Chapter...
+                  </>
+                ) : (
+                  <>
+                    <span>✨ AI Chapter Insights</span>
+                  </>
+                )}
+              </button>
+            </div>
+
+            {/* AI Summary Card */}
+            {aiSummary && (
+              <div 
+                onClick={(e) => e.stopPropagation()}
+                style={{
+                  background: 'rgba(20, 20, 20, 0.85)',
+                  border: '1px solid #222',
+                  borderRadius: 'var(--radius-lg)',
+                  padding: 'var(--space-lg)',
+                  width: '100%',
+                  maxWidth: '650px',
+                  boxShadow: 'var(--shadow-md), 0 0 15px rgba(229, 9, 20, 0.05)',
+                  backdropFilter: 'blur(10px)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '12px',
+                  fontSize: '0.95rem',
+                  lineHeight: '1.5',
+                  color: '#fff',
+                  textAlign: 'left'
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #222', paddingBottom: '8px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 700, color: 'var(--accent)', fontFamily: 'var(--font-display)' }}>
+                    <span>✨ AI Chapter Insights</span>
+                  </div>
+                  <button 
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    onClick={() => setAiSummary(null)}
+                    style={{ color: '#888', padding: '4px' }}
+                  >
+                    <FiX />
+                  </button>
+                </div>
+
+                <div>
+                  <h4 style={{ fontSize: '0.9rem', color: '#aaa', fontWeight: 600, marginBottom: '6px' }}>Summary Abstract</h4>
+                  <p style={{ color: '#eee', margin: 0 }}>{aiSummary.summary}</p>
+                </div>
+
+                {aiSummary.keyPoints && aiSummary.keyPoints.length > 0 && (
+                  <div>
+                    <h4 style={{ fontSize: '0.9rem', color: '#aaa', fontWeight: 600, marginBottom: '6px' }}>Key Takeaways</h4>
+                    <ul style={{ paddingLeft: '20px', margin: 0, color: '#eee', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      {aiSummary.keyPoints.map((pt, i) => (
+                        <li key={i}>{pt}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                <div style={{ display: 'flex', gap: '10px', alignItems: 'center', borderTop: '1px solid #222', paddingTop: '10px', marginTop: '4px' }}>
+                  <button
+                    type="button"
+                    className="btn btn-outline btn-sm"
+                    onClick={handlePlayVoiceSummary}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      borderColor: voicePlaying ? 'var(--success)' : '#333',
+                      color: voicePlaying ? 'var(--success)' : '#fff',
+                      cursor: 'pointer',
+                      background: 'transparent'
+                    }}
+                  >
+                    {voicePlaying ? (
+                      voicePaused ? (
+                        <><FiPlay /> Resume Audio Summary</>
+                      ) : (
+                        <><FiPause /> Pause Audio Summary</>
+                      )
+                    ) : (
+                      <><FiVolume2 /> Neural Voice Summary</>
+                    )}
+                  </button>
+
+                  {voicePlaying && (
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-sm"
+                      onClick={handleStopVoice}
+                      style={{ color: 'var(--error)', cursor: 'pointer' }}
+                    >
+                      <FiSquare /> Stop
+                    </button>
+                  )}
+
+                  {voicePlaying && !voicePaused && (
+                    <div style={{ display: 'flex', gap: '2px', alignItems: 'center', marginLeft: '10px', height: '18px' }}>
+                      <div style={{ width: '3px', height: '15px', background: 'var(--success)', borderRadius: '2px', animation: 'eq-bar 0.8s ease-in-out infinite alternate' }} />
+                      <div style={{ width: '3px', height: '8px', background: 'var(--success)', borderRadius: '2px', animation: 'eq-bar 0.5s ease-in-out infinite alternate 0.2s' }} />
+                      <div style={{ width: '3px', height: '18px', background: 'var(--success)', borderRadius: '2px', animation: 'eq-bar 0.7s ease-in-out infinite alternate 0.4s' }} />
+                      <div style={{ width: '3px', height: '10px', background: 'var(--success)', borderRadius: '2px', animation: 'eq-bar 0.6s ease-in-out infinite alternate 0.1s' }} />
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
             <div 
               className="manga-page-view"
               style={{
