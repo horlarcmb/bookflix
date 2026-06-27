@@ -110,9 +110,11 @@ export default function Navbar({ onNotificationToggle, notificationCount }) {
                   <Link to="/library" onClick={() => setUserMenuOpen(false)} className="btn btn-ghost" style={{ width: '100%', justifyContent: 'flex-start', padding: '8px 12px' }}>
                     <FiBookOpen /> My Library
                   </Link>
-                  <Link to="/admin" onClick={() => setUserMenuOpen(false)} className="btn btn-ghost" style={{ width: '100%', justifyContent: 'flex-start', padding: '8px 12px' }}>
-                    <FiSettings /> Admin
-                  </Link>
+                  {user && user.isAdmin && (
+                    <Link to="/admin" onClick={() => setUserMenuOpen(false)} className="btn btn-ghost" style={{ width: '100%', justifyContent: 'flex-start', padding: '8px 12px' }}>
+                      <FiSettings /> Admin
+                    </Link>
+                  )}
                   <hr style={{ border: 'none', borderTop: '1px solid var(--border)', margin: '4px 0' }} />
                   <button onClick={() => { setUserMenuOpen(false); handleSignOut(); }} className="btn btn-ghost" style={{ width: '100%', justifyContent: 'flex-start', color: 'var(--accent)', padding: '8px 12px' }}>
                     <FiLogOut /> Sign Out

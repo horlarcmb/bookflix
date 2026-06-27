@@ -1026,6 +1026,23 @@ app.get('/api/admin/telemetry', authenticateToken, requireAdmin, async (req, res
   }
 });
 
+// Get Public Activity Logs (For notifications panel)
+app.get('/api/activities', authenticateToken, async (req, res) => {
+  try {
+    const logs = await db.getTelemetry();
+    // Filter out page_view to show only meaningful activities
+    const activities = logs
+      .filter(l => l.eventType !== 'page_view')
+      .slice(-30)
+      .reverse(); // get latest 30
+    res.json(activities);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+
 // Helper: Clean HTML tags for text output
 function cleanHtmlTags(html) {
   if (!html) return '';

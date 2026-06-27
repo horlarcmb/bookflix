@@ -13,7 +13,7 @@ new_books_to_process = [
     {"id": 2131, "title": "The History of Herodotus", "author": "Herodotus", "genres": ["History", "Historical"]},
     {"id": 731, "title": "The Decline and Fall of the Roman Empire", "author": "Edward Gibbon", "genres": ["History", "Historical"]},
     {"id": 7142, "title": "The History of the Peloponnesian War", "author": "Thucydides", "genres": ["History", "Historical"]},
-    {"id": 2800, "title": "The French Revolution", "author": "Thomas Carlyle", "genres": ["History", "Historical"]},
+    {"id": 3327, "title": "The French Revolution", "author": "Thomas Carlyle", "genres": ["History", "Historical"]},
     {"id": 5344, "title": "Life of Abraham Lincoln", "author": "John Hugh Bowers", "genres": ["History", "Historical"]},
     
     # Science & Technology (5 books)

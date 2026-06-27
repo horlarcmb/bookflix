@@ -13,7 +13,7 @@ books_info = {
     2131: {"title": "The History of Herodotus", "author": "Herodotus", "genres": ["History", "Historical"]},
     731: {"title": "The Decline and Fall of the Roman Empire", "author": "Edward Gibbon", "genres": ["History", "Historical"]},
     7142: {"title": "The History of the Peloponnesian War", "author": "Thucydides", "genres": ["History", "Historical"]},
-    2800: {"title": "The French Revolution", "author": "Thomas Carlyle", "genres": ["History", "Historical"]},
+    3327: {"title": "The French Revolution", "author": "Thomas Carlyle", "genres": ["History", "Historical"]},
     5344: {"title": "Life of Abraham Lincoln", "author": "John Hugh Bowers", "genres": ["History", "Historical"]},
     
     1228: {"title": "On the Origin of Species", "author": "Charles Darwin", "genres": ["Science & Technology", "Non-Fiction"]},

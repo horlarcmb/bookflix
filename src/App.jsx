@@ -49,13 +49,7 @@ function AdminRoute({ children }) {
 
 function AppLayout() {
   const [notificationsOpen, setNotificationsOpen] = useState(false);
-  const [notifications, setNotifications] = useState([
-    { id: 1, type: 'release', title: 'New Chapter Available', message: 'Dragon Ascent Chapter 257 is now available!', time: '2 min ago', unread: true, icon: '📖', color: 'rgba(229,9,20,0.2)' },
-    { id: 2, type: 'recommendation', title: 'Recommended for You', message: 'Based on your reading history, try "The Frozen Crown"', time: '1 hour ago', unread: true, icon: '⭐', color: 'rgba(255,215,0,0.2)' },
-    { id: 3, type: 'release', title: 'New Release', message: '"Echoes of Eternity" by Amara Okafor just dropped!', time: '3 hours ago', unread: true, icon: '🆕', color: 'rgba(70,211,105,0.2)' },
-    { id: 4, type: 'subscription', title: 'Subscription Renewed', message: 'Your Standard plan has been renewed for $1/month', time: '1 day ago', unread: false, icon: '💳', color: 'rgba(79,172,254,0.2)' },
-    { id: 6, type: 'release', title: 'New Manga Chapter', message: 'Spirit Blade Chronicles Ch. 190 is here!', time: '3 days ago', unread: false, icon: '📖', color: 'rgba(229,9,20,0.2)' },
-  ]);
+  const [notifications, setNotifications] = useState([]);
 
   const location = useLocation();
   const { user } = useAuth();
@@ -65,53 +59,122 @@ function AppLayout() {
 
   const handleMarkAllRead = () => {
     setNotifications(prev => prev.map(n => ({ ...n, unread: false })));
+    const allIds = notifications.map(n => n.id);
+    localStorage.setItem('read_notifications', JSON.stringify(allIds));
   };
 
-  // Simulate new incoming notifications periodically
+  // Fetch activities from server and convert to notifications
   useEffect(() => {
-    if (!user || books.length === 0) return;
+    if (!user) {
+      setNotifications([]);
+      return;
+    }
 
-    const interval = setInterval(() => {
-      const randomBook = books[Math.floor(Math.random() * books.length)];
-      if (!randomBook) return;
+    const fetchActivities = async () => {
+      try {
+        const token = localStorage.getItem('bookflix_token');
+        if (!token) return;
 
-      const simulationTemplates = [
-        {
-          type: 'release',
-          title: 'Trending Classic',
-          message: `"${randomBook.title}" by ${randomBook.author} is trending now with ${randomBook.readCount.toLocaleString()} views!`,
-          icon: '🔥',
-          color: 'rgba(229,9,20,0.2)'
-        },
-        {
-          type: 'recommendation',
-          title: 'Top Recommendation',
-          message: `Recommended for you: Dive into the pages of "${randomBook.title}" (Rating: ${randomBook.rating} ★)`,
-          icon: '⭐',
-          color: 'rgba(255,215,0,0.2)'
-        },
-        {
-          type: 'release',
-          title: 'Polished Ebook Added',
-          message: `"${randomBook.title}" has been processed and is now available in the ${randomBook.genre[0]} category!`,
-          icon: '📚',
-          color: 'rgba(70,211,105,0.2)'
+        const res = await fetch('/api/activities', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          const formatted = data.map((log, index) => {
+            let title = 'Activity';
+            let message = '';
+            let icon = '🔔';
+            let color = 'rgba(79,172,254,0.2)';
+
+            const email = log.userEmail || 'A user';
+            const shortEmail = email.includes('@') 
+              ? email.split('@')[0].substring(0, 3) + '...' + '@' + email.split('@')[1]
+              : email;
+
+            if (log.eventType === 'login') {
+              title = 'User Login';
+              message = `${shortEmail} logged in.`;
+              icon = '🔑';
+              color = 'rgba(70,211,105,0.2)';
+            } else if (log.eventType === 'registration') {
+              title = 'New Member';
+              message = `Welcome to new user ${shortEmail}!`;
+              icon = '🆕';
+              color = 'rgba(118,75,162,0.2)';
+            } else if (log.eventType === 'subscribe') {
+              title = 'Subscription';
+              message = `${shortEmail} subscribed to ${log.metadata?.planId || 'a'} plan!`;
+              icon = '💳';
+              color = 'rgba(79,172,254,0.2)';
+            } else if (log.eventType === 'book_read') {
+              title = 'Reading Progress';
+              message = `${shortEmail} read ${log.metadata?.bookTitle} (Ch. ${log.metadata?.chapter || 1})`;
+              icon = '📖';
+              color = 'rgba(229,9,20,0.2)';
+            } else if (log.eventType === 'admin_upload') {
+              title = 'Book Ingested';
+              message = `Admin uploaded a new book: "${log.metadata?.bookTitle}"`;
+              icon = '📚';
+              color = 'rgba(255,215,0,0.2)';
+            } else if (log.eventType === 'telemetry_clear') {
+              title = 'System Maintenance';
+              message = `Telemetry logs were cleared by Admin.`;
+              icon = '⚙️';
+              color = 'rgba(128,128,128,0.2)';
+            } else {
+              title = log.eventType.replace('_', ' ').replace(/\b\w/g, c => c.toUpperCase());
+              message = `${shortEmail} triggered ${title}`;
+            }
+
+            const diffMs = new Date() - new Date(log.timestamp);
+            const diffMins = Math.floor(diffMs / 60000);
+            let timeStr = 'Just now';
+            if (diffMins > 0) {
+              if (diffMins < 60) {
+                timeStr = `${diffMins}m ago`;
+              } else {
+                const diffHours = Math.floor(diffMins / 60);
+                if (diffHours < 24) {
+                  timeStr = `${diffHours}h ago`;
+                } else {
+                  timeStr = `${Math.floor(diffHours / 24)}d ago`;
+                }
+              }
+            }
+
+            const uniqueId = log.id || `${log.eventType}-${log.timestamp}-${index}`;
+            return {
+              id: uniqueId,
+              type: log.eventType,
+              title,
+              message,
+              time: timeStr,
+              unread: true,
+              icon,
+              color
+            };
+          });
+
+          const readIds = JSON.parse(localStorage.getItem('read_notifications') || '[]');
+          const finalNotifs = formatted.map(n => ({
+            ...n,
+            unread: !readIds.includes(n.id)
+          }));
+
+          setNotifications(finalNotifs);
         }
-      ];
+      } catch (err) {
+        console.error('Failed to fetch activities:', err);
+      }
+    };
 
-      const template = simulationTemplates[Math.floor(Math.random() * simulationTemplates.length)];
-      const newNotif = {
-        id: Date.now(),
-        ...template,
-        time: 'Just now',
-        unread: true
-      };
-
-      setNotifications(prev => [newNotif, ...prev.slice(0, 9)]);
-    }, 45000); // every 45 seconds
+    fetchActivities();
+    const interval = setInterval(fetchActivities, 15000);
 
     return () => clearInterval(interval);
-  }, [books, user]);
+  }, [user]);
 
   // Hide navbar/footer on reader, authentication pages, and landing page (if unauthenticated)
   const hideChrome = location.pathname.startsWith('/read') ||
