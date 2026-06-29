@@ -370,10 +370,14 @@ ul, ol { list-style: none; }
   position: absolute;
   inset: 0;
   opacity: 0;
-  transition: opacity 800ms ease;
+  visibility: hidden;
+  transition: opacity 800ms ease, visibility 800ms ease;
 }
 
-.hero-slide.active { opacity: 1; }
+.hero-slide.active { 
+  opacity: 1; 
+  visibility: visible;
+}
 
 .hero-bg {
   position: absolute;

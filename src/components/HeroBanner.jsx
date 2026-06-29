@@ -34,36 +34,37 @@ export default function HeroBanner() {
             }}
           />
           <div className="hero-gradient" />
-          <motion.div
-            className="hero-content"
-            key={activeSlide}
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
-          >
-            <span className="hero-badge">
-              <FaFire /> {book.type === 'Manga' || book.type === 'Manhwa' ? 'Top Manga' : 'Featured'}
-            </span>
-            <h1 className="hero-title">{book.title}</h1>
-            <div className="hero-meta">
-              <span className="rating">★ {book.rating}</span>
-              <span className="dot" />
-              <span>{book.genre.join(' • ')}</span>
-              <span className="dot" />
-              <span>{book.chapters} Chapters</span>
-              <span className="dot" />
-              <span>{book.status}</span>
-            </div>
-            <p className="hero-synopsis">{book.synopsis}</p>
-            <div className="hero-actions">
-              <button className="btn btn-primary btn-lg" onClick={() => navigate(`/read/${book.id}`)}>
-                <FiPlay /> Read Now
-              </button>
-              <button className="btn btn-secondary btn-lg" onClick={() => navigate(`/book/${book.id}`)}>
-                <FiPlus /> More Info
-              </button>
-            </div>
-          </motion.div>
+          {index === activeSlide && (
+            <motion.div
+              className="hero-content"
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.2 }}
+            >
+              <span className="hero-badge">
+                <FaFire /> {book.type === 'Manga' || book.type === 'Manhwa' ? 'Top Manga' : 'Featured'}
+              </span>
+              <h1 className="hero-title">{book.title}</h1>
+              <div className="hero-meta">
+                <span className="rating">★ {book.rating}</span>
+                <span className="dot" />
+                <span>{book.genre.join(' • ')}</span>
+                <span className="dot" />
+                <span>{book.chapters} Chapters</span>
+                <span className="dot" />
+                <span>{book.status}</span>
+              </div>
+              <p className="hero-synopsis">{book.synopsis}</p>
+              <div className="hero-actions">
+                <button className="btn btn-primary btn-lg" onClick={() => navigate(`/read/${book.id}`)}>
+                  <FiPlay /> Read Now
+                </button>
+                <button className="btn btn-secondary btn-lg" onClick={() => navigate(`/book/${book.id}`)}>
+                  <FiPlus /> More Info
+                </button>
+              </div>
+            </motion.div>
+          )}
         </div>
       ))}
       <div className="hero-dots">
