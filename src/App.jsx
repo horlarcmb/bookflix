@@ -10,6 +10,7 @@ import { BookProvider, useBook } from './context/BookContext';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import NotificationPanel from './components/NotificationPanel';
+import FeedbackButton from './components/FeedbackButton';
 
 // Pages
 import HomePage from './pages/HomePage';
@@ -275,6 +276,7 @@ function AppLayout() {
         </Routes>
       </AnimatePresence>
 
+      {!hideChrome && <FeedbackButton />}
       {!hideChrome && <Footer />}
     </>
   );

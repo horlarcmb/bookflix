@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  FiBarChart2, FiBook, FiUsers, FiUpload, FiTrash2, FiX, FiCheck 
+  FiBarChart2, FiBook, FiUsers, FiUpload, FiTrash2, FiX, FiCheck, FiCpu, FiTrendingUp, FiFileText, FiShare2, FiActivity, FiGrid 
 } from 'react-icons/fi';
 import { useBook } from '../context/BookContext';
 import { useAuth } from '../context/AuthContext';
@@ -385,7 +385,14 @@ export default function AdminDashboard() {
   const sidebarItems = [
     { id: 'overview', icon: <FiBarChart2 />, label: 'Overview' },
     { id: 'content', icon: <FiBook />, label: 'Content' },
-    { id: 'users', icon: <FiUsers />, label: 'Users' }
+    { id: 'users', icon: <FiUsers />, label: 'Users' },
+    { id: 'product', icon: <FiCheck />, label: 'AI Product Roadmap' },
+    { id: 'engineering', icon: <FiCpu />, label: 'AI Code Improvements' },
+    { id: 'marketing', icon: <FiTrendingUp />, label: 'AI Growth Campaigns' },
+    { id: 'content-strategy', icon: <FiFileText />, label: 'AI Content Strategy' },
+    { id: 'social', icon: <FiShare2 />, label: 'AI Social Management' },
+    { id: 'analytics-strategy', icon: <FiActivity />, label: 'AI Data Intelligence' },
+    { id: 'master-control', icon: <FiGrid />, label: 'AI Master Control' }
   ];
 
   const totalUsers = usersList.length;
@@ -968,7 +975,40 @@ export default function AdminDashboard() {
               </div>
             )}
 
+            {/* AI Product Roadmap Section */}
+            {activeSection === 'product' && (
+              <ProductRoadmapSection />
+            )}
 
+            {/* AI Code Improvements Section */}
+            {activeSection === 'engineering' && (
+              <EngineeringSection />
+            )}
+
+            {/* AI Growth Campaigns Section */}
+            {activeSection === 'marketing' && (
+              <MarketingSection />
+            )}
+
+            {/* AI Content Strategy Section */}
+            {activeSection === 'content-strategy' && (
+              <ContentStrategySection />
+            )}
+
+            {/* AI Social Management Section */}
+            {activeSection === 'social' && (
+              <SocialSection />
+            )}
+
+            {/* AI Data Intelligence Section */}
+            {activeSection === 'analytics-strategy' && (
+              <AnalyticsSection />
+            )}
+
+            {/* AI Master Control Section */}
+            {activeSection === 'master-control' && (
+              <MasterControlSection />
+            )}
 
           </motion.div>
         </main>
@@ -1751,6 +1791,2137 @@ function LineChart({ usersList }) {
         );
       })}
     </svg>
+  );
+}
+
+function ProductRoadmapSection() {
+  const [decisions, setDecisions] = useState([]);
+  const [weakness, setWeakness] = useState('Run analysis to discover platform weaknesses and prioritize items.');
+  const [milestones, setMilestones] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [goals, setGoals] = useState('');
+  const [activeTab, setActiveTab] = useState('roadmap'); // 'roadmap' | 'weaknesses'
+
+  const fetchRoadmap = async () => {
+    try {
+      const token = localStorage.getItem('bookflix_token');
+      const res = await fetch('/api/admin/product/decisions', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setDecisions(data);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  useEffect(() => {
+    fetchRoadmap();
+  }, []);
+
+  const handleAnalyze = async () => {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('bookflix_token');
+      const res = await fetch('/api/admin/product/analyze', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ goals })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message);
+
+      setWeakness(data.weaknessReport);
+      setMilestones(data.milestones);
+      setDecisions(data.recommendations);
+    } catch (err) {
+      alert('Failed to analyze: ' + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const updateDecisionStatus = async (id, newStatus) => {
+    try {
+      const token = localStorage.getItem('bookflix_token');
+      const res = await fetch(`/api/admin/product/decisions/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ status: newStatus })
+      });
+      if (res.ok) {
+        setDecisions(prev => prev.map(d => d.id === id ? { ...d, status: newStatus } : d));
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  // Group decisions
+  const proposed = decisions.filter(d => d.status === 'Proposed');
+  const backlog = decisions.filter(d => d.status === 'Backlog');
+  const inProgress = decisions.filter(d => d.status === 'In Progress');
+  const completed = decisions.filter(d => d.status === 'Completed');
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', marginTop: 'var(--space-md)' }}>
+      {/* Settings & Trigger Header */}
+      <div style={{
+        background: 'var(--bg-card)',
+        border: '1px solid var(--border)',
+        borderRadius: 'var(--radius-lg)',
+        padding: '20px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '12px'
+      }}>
+        <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600 }}>Configure AI Roadmap Agent</h3>
+        <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', margin: 0 }}>
+          Specify custom product goals or focus areas. The Product Agent analyzes active feedback cohorts and telemetry events to re-triage recommendations.
+        </p>
+        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+          <input
+            type="text"
+            placeholder="Focus goals (e.g., Maximize viral acquisition, signups, referrals, quote sharing, and audio summary integrations)..."
+            value={goals}
+            onChange={e => setGoals(e.target.value)}
+            style={{
+              flex: 1,
+              padding: '10px 16px',
+              background: 'var(--bg-primary)',
+              border: '1px solid var(--border)',
+              borderRadius: 'var(--radius-md)',
+              color: '#fff',
+              fontSize: '0.9rem',
+              fontFamily: 'inherit'
+            }}
+          />
+          <button
+            onClick={handleAnalyze}
+            disabled={loading}
+            className="btn btn-primary"
+            style={{ padding: '10px 24px', flexShrink: 0 }}
+          >
+            {loading ? 'Re-triaging roadmap...' : 'Trigger AI Roadmap analysis'}
+          </button>
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', gap: '16px' }}>
+        <button
+          onClick={() => setActiveTab('roadmap')}
+          style={{
+            background: 'none',
+            border: 'none',
+            borderBottom: activeTab === 'roadmap' ? '2px solid var(--accent)' : 'none',
+            padding: '10px 4px',
+            color: activeTab === 'roadmap' ? 'var(--text-primary)' : 'var(--text-secondary)',
+            fontWeight: 600,
+            cursor: 'pointer',
+            fontSize: '0.95rem',
+            fontFamily: 'inherit'
+          }}
+        >
+          Product Roadmap Board
+        </button>
+        <button
+          onClick={() => setActiveTab('weaknesses')}
+          style={{
+            background: 'none',
+            border: 'none',
+            borderBottom: activeTab === 'weaknesses' ? '2px solid var(--accent)' : 'none',
+            padding: '10px 4px',
+            color: activeTab === 'weaknesses' ? 'var(--text-primary)' : 'var(--text-secondary)',
+            fontWeight: 600,
+            cursor: 'pointer',
+            fontSize: '0.95rem',
+            fontFamily: 'inherit'
+          }}
+        >
+          Weakness Reports & Milestones
+        </button>
+      </div>
+
+      {/* Tab Panels */}
+      {activeTab === 'roadmap' ? (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '16px', alignItems: 'start' }}>
+          {/* Proposed */}
+          <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '12px' }}>
+            <h4 style={{ margin: '0 0 12px 0', fontSize: '0.9rem', color: 'var(--text-secondary)', textTransform: 'uppercase', display: 'flex', justifyContent: 'space-between', fontWeight: 600 }}>
+              <span>Proposed</span>
+              <span className="badge badge-type">{proposed.length}</span>
+            </h4>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {proposed.map(item => <RoadmapCard key={item.id} item={item} onStatusChange={updateDecisionStatus} />)}
+              {proposed.length === 0 && <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-tertiary)', fontSize: '0.85rem' }}>No proposed features.</div>}
+            </div>
+          </div>
+
+          {/* Backlog */}
+          <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '12px' }}>
+            <h4 style={{ margin: '0 0 12px 0', fontSize: '0.9rem', color: 'var(--text-secondary)', textTransform: 'uppercase', display: 'flex', justifyContent: 'space-between', fontWeight: 600 }}>
+              <span>Backlog</span>
+              <span className="badge badge-type">{backlog.length}</span>
+            </h4>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {backlog.map(item => <RoadmapCard key={item.id} item={item} onStatusChange={updateDecisionStatus} />)}
+              {backlog.length === 0 && <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-tertiary)', fontSize: '0.85rem' }}>Backlog is empty.</div>}
+            </div>
+          </div>
+
+          {/* In Progress */}
+          <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '12px' }}>
+            <h4 style={{ margin: '0 0 12px 0', fontSize: '0.9rem', color: 'var(--text-secondary)', textTransform: 'uppercase', display: 'flex', justifyContent: 'space-between', fontWeight: 600 }}>
+              <span>In Progress</span>
+              <span className="badge badge-type">{inProgress.length}</span>
+            </h4>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {inProgress.map(item => <RoadmapCard key={item.id} item={item} onStatusChange={updateDecisionStatus} />)}
+              {inProgress.length === 0 && <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-tertiary)', fontSize: '0.85rem' }}>No active developments.</div>}
+            </div>
+          </div>
+
+          {/* Completed */}
+          <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '12px' }}>
+            <h4 style={{ margin: '0 0 12px 0', fontSize: '0.9rem', color: 'var(--text-secondary)', textTransform: 'uppercase', display: 'flex', justifyContent: 'space-between', fontWeight: 600 }}>
+              <span>Completed</span>
+              <span className="badge badge-type">{completed.length}</span>
+            </h4>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {completed.map(item => <RoadmapCard key={item.id} item={item} onStatusChange={updateDecisionStatus} />)}
+              {completed.length === 0 && <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-tertiary)', fontSize: '0.85rem' }}>None completed yet.</div>}
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          {/* Weaknesses Card */}
+          <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: '20px' }}>
+            <h3 style={{ margin: '0 0 12px 0', fontSize: '1.1rem', fontWeight: 600 }}>Product Weakness Report</h3>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', lineHeight: '1.5', whiteSpace: 'pre-wrap', margin: 0 }}>
+              {weakness}
+            </p>
+          </div>
+
+          {/* Milestones Card */}
+          <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: '20px' }}>
+            <h3 style={{ margin: '0 0 12px 0', fontSize: '1.1rem', fontWeight: 600 }}>Roadmap Milestones</h3>
+            {milestones.length === 0 ? (
+              <p style={{ color: 'var(--text-tertiary)', fontSize: '0.9rem', margin: 0 }}>Run the roadmap analysis to generate prioritized phases.</p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                {milestones.map((m, idx) => (
+                  <div key={idx} style={{ borderLeft: '2px solid var(--accent)', paddingLeft: '16px' }}>
+                    <h4 style={{ margin: '0 0 6px 0', fontSize: '1rem', fontWeight: 600 }}>{m.name}</h4>
+                    <ul style={{ margin: 0, paddingLeft: '20px', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
+                      {m.deliverables && m.deliverables.map((d, dIdx) => <li key={dIdx} style={{ marginBottom: '4px' }}>{d}</li>)}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function RoadmapCard({ item, onStatusChange }) {
+  const [tasksOpen, setTasksOpen] = useState(false);
+
+  const getPriorityColor = (p) => {
+    switch (p.toLowerCase()) {
+      case 'critical': return '#ff3b30';
+      case 'high': return '#ff9500';
+      case 'medium': return '#ffcc00';
+      default: return 'var(--text-secondary)';
+    }
+  };
+
+  return (
+    <div style={{
+      background: 'var(--bg-card)',
+      border: '1px solid var(--border)',
+      borderRadius: 'var(--radius-sm)',
+      padding: '12px',
+      boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '8px'
+    }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', gap: '8px' }}>
+        <h5 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-primary)' }}>{item.title}</h5>
+        <span style={{
+          fontSize: '0.7rem',
+          fontWeight: 700,
+          textTransform: 'uppercase',
+          color: getPriorityColor(item.priority),
+          background: 'rgba(255,255,255,0.03)',
+          padding: '2px 6px',
+          borderRadius: '4px'
+        }}>
+          {item.priority}
+        </span>
+      </div>
+      <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
+        {item.description}
+      </p>
+
+      {/* Scores indicator mapping new Growth Metrics */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 12px', fontSize: '0.75rem', color: 'var(--text-tertiary)', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '6px' }}>
+        <span>🚀 Growth: <strong>{item.growthImpact || 5}</strong></span>
+        <span>🎭 Retention: <strong>{item.retentionImpact || 5}</strong></span>
+        <span>🔥 Virality: <strong>{item.viralityPotential || 5}</strong></span>
+        <span>🛠️ Effort: <strong>{item.effortScore || 5}</strong></span>
+      </div>
+
+      {/* Tasks dropdown */}
+      {item.engineeringTasks && item.engineeringTasks.length > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+          <button
+            onClick={() => setTasksOpen(!tasksOpen)}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: 'var(--accent)',
+              fontSize: '0.75rem',
+              fontWeight: 600,
+              cursor: 'pointer',
+              alignSelf: 'flex-start',
+              padding: 0,
+              fontFamily: 'inherit'
+            }}
+          >
+            {tasksOpen ? 'Hide Engineering Tasks' : `Show Engineering Tasks (${item.engineeringTasks.length})`}
+          </button>
+          {tasksOpen && (
+            <ul style={{ margin: '4px 0 0 0', paddingLeft: '16px', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+              {item.engineeringTasks.map((t, idx) => <li key={idx} style={{ marginBottom: '2px' }}>{t}</li>)}
+            </ul>
+          )}
+        </div>
+      )}
+
+      {/* Status Transition controls */}
+      <div style={{ display: 'flex', gap: '4px', marginTop: '4px', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '8px' }}>
+        {item.status !== 'Proposed' && (
+          <button
+            onClick={() => {
+              const prevs = { 'Backlog': 'Proposed', 'In Progress': 'Backlog', 'Completed': 'In Progress' };
+              onStatusChange(item.id, prevs[item.status]);
+            }}
+            style={{ padding: '4px 8px', fontSize: '0.75rem', background: 'none', border: '1px solid var(--border)', color: 'var(--text-secondary)', cursor: 'pointer', borderRadius: '4px', flex: 1, fontFamily: 'inherit' }}
+          >
+            ← Back
+          </button>
+        )}
+        {item.status !== 'Completed' && (
+          <button
+            onClick={() => {
+              const nexts = { 'Proposed': 'Backlog', 'Backlog': 'In Progress', 'In Progress': 'Completed' };
+              onStatusChange(item.id, nexts[item.status]);
+            }}
+            style={{ padding: '4px 8px', fontSize: '0.75rem', background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border)', color: 'var(--text-primary)', cursor: 'pointer', borderRadius: '4px', flex: 1, fontFamily: 'inherit' }}
+          >
+            Advance →
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function EngineeringSection() {
+  const [tasks, setTasks] = useState([]);
+  const [auditReport, setAuditReport] = useState('Run codebase audit to discover technical weaknesses.');
+  const [weaknesses, setWeaknesses] = useState('');
+  const [roadmap, setRoadmap] = useState([]);
+  const [plan, setPlan] = useState('');
+  const [goals, setGoals] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState('tasks'); // 'tasks' | 'audit'
+
+  const fetchTasks = async () => {
+    try {
+      const token = localStorage.getItem('bookflix_token');
+      const res = await fetch('/api/admin/engineering/tasks', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setTasks(data);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  useEffect(() => {
+    fetchTasks();
+  }, []);
+
+  const handleAudit = async () => {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('bookflix_token');
+      const res = await fetch('/api/admin/engineering/audit', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ goals })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message);
+
+      setAuditReport(data.auditReport);
+      setWeaknesses(data.weaknessesReport);
+      setRoadmap(data.roadmap);
+      setPlan(data.plan);
+      setTasks(data.tasks);
+    } catch (err) {
+      alert('Failed to run engineering audit: ' + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleStatusChange = async (id, newStatus) => {
+    try {
+      const token = localStorage.getItem('bookflix_token');
+      const res = await fetch(`/api/admin/engineering/tasks/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ status: newStatus })
+      });
+      if (res.ok) {
+        setTasks(prev => prev.map(t => t.id === id ? { ...t, status: newStatus } : t));
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  // Group tasks
+  const proposed = tasks.filter(t => t.status === 'Proposed');
+  const inProgress = tasks.filter(t => t.status === 'In Progress');
+  const completed = tasks.filter(t => t.status === 'Completed');
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', marginTop: 'var(--space-md)' }}>
+      {/* Configuration Header */}
+      <div style={{
+        background: 'var(--bg-card)',
+        border: '1px solid var(--border)',
+        borderRadius: 'var(--radius-lg)',
+        padding: '20px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '12px'
+      }}>
+        <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600 }}>Configure AI Engineering Agent</h3>
+        <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', margin: 0 }}>
+          Direct the Engineering Agent to focus on specific code optimization targets (e.g. Redesign reader selectors, reduce flat-file save clashes).
+        </p>
+        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+          <input
+            type="text"
+            placeholder="Focus targets (e.g., Fix reader overlaps, debounce bookmark progress commits, Cache summaries)..."
+            value={goals}
+            onChange={e => setGoals(e.target.value)}
+            style={{
+              flex: 1,
+              padding: '10px 16px',
+              background: 'var(--bg-primary)',
+              border: '1px solid var(--border)',
+              borderRadius: 'var(--radius-md)',
+              color: '#fff',
+              fontSize: '0.9rem',
+              fontFamily: 'inherit'
+            }}
+          />
+          <button
+            onClick={handleAudit}
+            disabled={loading}
+            className="btn btn-primary"
+            style={{ padding: '10px 24px', flexShrink: 0 }}
+          >
+            {loading ? 'Executing Code Audit...' : 'Trigger AI Code Audit'}
+          </button>
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', gap: '16px' }}>
+        <button
+          onClick={() => setActiveTab('tasks')}
+          style={{
+            background: 'none',
+            border: 'none',
+            borderBottom: activeTab === 'tasks' ? '2px solid var(--accent)' : 'none',
+            padding: '10px 4px',
+            color: activeTab === 'tasks' ? 'var(--text-primary)' : 'var(--text-secondary)',
+            fontWeight: 600,
+            cursor: 'pointer',
+            fontSize: '0.95rem',
+            fontFamily: 'inherit'
+          }}
+        >
+          Engineering Task Board
+        </button>
+        <button
+          onClick={() => setActiveTab('audit')}
+          style={{
+            background: 'none',
+            border: 'none',
+            borderBottom: activeTab === 'audit' ? '2px solid var(--accent)' : 'none',
+            padding: '10px 4px',
+            color: activeTab === 'audit' ? 'var(--text-primary)' : 'var(--text-secondary)',
+            fontWeight: 600,
+            cursor: 'pointer',
+            fontSize: '0.95rem',
+            fontFamily: 'inherit'
+          }}
+        >
+          Audit Reports & Technical Weaknesses
+        </button>
+      </div>
+
+      {/* Tab Content */}
+      {activeTab === 'tasks' ? (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '16px', alignItems: 'start' }}>
+          {/* Proposed */}
+          <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '12px' }}>
+            <h4 style={{ margin: '0 0 12px 0', fontSize: '0.9rem', color: 'var(--text-secondary)', textTransform: 'uppercase', display: 'flex', justifyContent: 'space-between', fontWeight: 600 }}>
+              <span>Proposed Improvement Tickets</span>
+              <span className="badge badge-type">{proposed.length}</span>
+            </h4>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {proposed.map(t => <EngineeringTaskCard key={t.id} task={t} onStatusChange={handleStatusChange} />)}
+              {proposed.length === 0 && <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-tertiary)', fontSize: '0.85rem' }}>No proposed improvement tasks.</div>}
+            </div>
+          </div>
+
+          {/* In Progress */}
+          <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '12px' }}>
+            <h4 style={{ margin: '0 0 12px 0', fontSize: '0.9rem', color: 'var(--text-secondary)', textTransform: 'uppercase', display: 'flex', justifyContent: 'space-between', fontWeight: 600 }}>
+              <span>In Active Development</span>
+              <span className="badge badge-type">{inProgress.length}</span>
+            </h4>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {inProgress.map(t => <EngineeringTaskCard key={t.id} task={t} onStatusChange={handleStatusChange} />)}
+              {inProgress.length === 0 && <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-tertiary)', fontSize: '0.85rem' }}>No active dev tasks.</div>}
+            </div>
+          </div>
+
+          {/* Completed */}
+          <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '12px' }}>
+            <h4 style={{ margin: '0 0 12px 0', fontSize: '0.9rem', color: 'var(--text-secondary)', textTransform: 'uppercase', display: 'flex', justifyContent: 'space-between', fontWeight: 600 }}>
+              <span>Completed Refactors</span>
+              <span className="badge badge-type">{completed.length}</span>
+            </h4>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {completed.map(t => <EngineeringTaskCard key={t.id} task={t} onStatusChange={handleStatusChange} />)}
+              {completed.length === 0 && <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-tertiary)', fontSize: '0.85rem' }}>None resolved yet.</div>}
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          {/* Audit report */}
+          <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: '20px' }}>
+            <h3 style={{ margin: '0 0 12px 0', fontSize: '1.1rem', fontWeight: 600 }}>Engineering Audit Summary</h3>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', lineHeight: '1.5', margin: 0, whiteSpace: 'pre-wrap' }}>
+              {auditReport}
+            </p>
+          </div>
+
+          {/* Technical weaknesses */}
+          {weaknesses && (
+            <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: '20px' }}>
+              <h3 style={{ margin: '0 0 12px 0', fontSize: '1.1rem', fontWeight: 600, color: '#ff3b30' }}>Technical Weaknesses Report</h3>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', lineHeight: '1.5', margin: 0, whiteSpace: 'pre-wrap' }}>
+                {weaknesses}
+              </p>
+            </div>
+          )}
+
+          {/* Code improvement plan */}
+          {plan && (
+            <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: '20px' }}>
+              <h3 style={{ margin: '0 0 12px 0', fontSize: '1.1rem', fontWeight: 600 }}>Code Improvement Plan</h3>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', lineHeight: '1.5', margin: 0, whiteSpace: 'pre-wrap' }}>
+                {plan}
+              </p>
+            </div>
+          )}
+
+          {/* Implementation Roadmap */}
+          {roadmap.length > 0 && (
+            <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: '20px' }}>
+              <h3 style={{ margin: '0 0 12px 0', fontSize: '1.1rem', fontWeight: 600 }}>Implementation Roadmap</h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                {roadmap.map((m, idx) => (
+                  <div key={idx} style={{ borderLeft: '2px solid var(--accent)', paddingLeft: '16px' }}>
+                    <h4 style={{ margin: '0 0 6px 0', fontSize: '1rem', fontWeight: 600 }}>{m.phase}</h4>
+                    <ul style={{ margin: 0, paddingLeft: '20px', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
+                      {m.tasks && m.tasks.map((t, tIdx) => <li key={tIdx} style={{ marginBottom: '4px' }}>{t}</li>)}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function EngineeringTaskCard({ task, onStatusChange }) {
+  const getCategoryColor = (cat) => {
+    switch (cat.toUpperCase()) {
+      case 'UI': return 'var(--accent)';
+      case 'PERFORMANCE': return '#4facfe';
+      case 'AI SUMMARIES': return '#46d369';
+      case 'AI LIBRARIAN': return '#ffcc00';
+      default: return 'var(--text-secondary)';
+    }
+  };
+
+  return (
+    <div style={{
+      background: 'var(--bg-card)',
+      border: '1px solid var(--border)',
+      borderRadius: 'var(--radius-sm)',
+      padding: '12px',
+      boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '8px'
+    }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', gap: '8px' }}>
+        <h5 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-primary)' }}>{task.title}</h5>
+        <span style={{
+          fontSize: '0.7rem',
+          fontWeight: 700,
+          textTransform: 'uppercase',
+          color: getCategoryColor(task.category),
+          background: 'rgba(255,255,255,0.03)',
+          padding: '2px 6px',
+          borderRadius: '4px'
+        }}>
+          {task.category}
+        </span>
+      </div>
+      <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
+        {task.description}
+      </p>
+
+      {/* Progress transitions */}
+      <div style={{ display: 'flex', gap: '4px', marginTop: '4px', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '8px' }}>
+        {task.status !== 'Proposed' && (
+          <button
+            onClick={() => {
+              const prevs = { 'In Progress': 'Proposed', 'Completed': 'In Progress' };
+              onStatusChange(task.id, prevs[task.status]);
+            }}
+            style={{ padding: '4px 8px', fontSize: '0.75rem', background: 'none', border: '1px solid var(--border)', color: 'var(--text-secondary)', cursor: 'pointer', borderRadius: '4px', flex: 1, fontFamily: 'inherit' }}
+          >
+            ← Back
+          </button>
+        )}
+        {task.status !== 'Completed' && (
+          <button
+            onClick={() => {
+              const nexts = { 'Proposed': 'In Progress', 'In Progress': 'Completed' };
+              onStatusChange(task.id, nexts[task.status]);
+            }}
+            style={{ padding: '4px 8px', fontSize: '0.75rem', background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border)', color: 'var(--text-primary)', cursor: 'pointer', borderRadius: '4px', flex: 1, fontFamily: 'inherit' }}
+          >
+            Advance →
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function MarketingSection() {
+  const [campaigns, setCampaigns] = useState([]);
+  const [strategy, setStrategy] = useState('Run AI Growth analysis to formulate marketing strategies.');
+  const [channelStrategy, setChannelStrategy] = useState('');
+  const [acquisitionPlan, setAcquisitionPlan] = useState('');
+  const [experiments, setExperiments] = useState([]);
+  const [goals, setGoals] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState('campaigns'); // 'campaigns' | 'strategy'
+
+  const fetchCampaigns = async () => {
+    try {
+      const token = localStorage.getItem('bookflix_token');
+      const res = await fetch('/api/admin/marketing/campaigns', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setCampaigns(data);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  useEffect(() => {
+    fetchCampaigns();
+  }, []);
+
+  const handleAnalyze = async () => {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('bookflix_token');
+      const res = await fetch('/api/admin/marketing/analyze', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ goals })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message);
+
+      setStrategy(data.growthStrategy);
+      setChannelStrategy(data.channelStrategy);
+      setAcquisitionPlan(data.acquisitionPlan);
+      setExperiments(data.experiments);
+      setCampaigns(data.campaigns);
+    } catch (err) {
+      alert('Failed to execute growth analysis: ' + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleStatusChange = async (id, newStatus) => {
+    try {
+      const token = localStorage.getItem('bookflix_token');
+      const res = await fetch(`/api/admin/marketing/campaigns/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ status: newStatus })
+      });
+      if (res.ok) {
+        setCampaigns(prev => prev.map(c => c.id === id ? { ...c, status: newStatus } : c));
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  // Group campaigns
+  const planned = campaigns.filter(c => c.status === 'Planned');
+  const active = campaigns.filter(c => c.status === 'Active');
+  const completed = campaigns.filter(c => c.status === 'Completed');
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', marginTop: 'var(--space-md)' }}>
+      {/* Configuration Header */}
+      <div style={{
+        background: 'var(--bg-card)',
+        border: '1px solid var(--border)',
+        borderRadius: 'var(--radius-lg)',
+        padding: '20px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '12px'
+      }}>
+        <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600 }}>Configure AI Growth Strategist</h3>
+        <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', margin: 0 }}>
+          Specify acquisition objectives or focus channels (e.g. TikTok study hacks threads, referral loops, WhatsApp studies sharing hooks).
+        </p>
+        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+          <input
+            type="text"
+            placeholder="Focus campaigns (e.g., Target TikTok study influencers, WhatsApp quote share loop)..."
+            value={goals}
+            onChange={e => setGoals(e.target.value)}
+            style={{
+              flex: 1,
+              padding: '10px 16px',
+              background: 'var(--bg-primary)',
+              border: '1px solid var(--border)',
+              borderRadius: 'var(--radius-md)',
+              color: '#fff',
+              fontSize: '0.9rem',
+              fontFamily: 'inherit'
+            }}
+          />
+          <button
+            onClick={handleAnalyze}
+            disabled={loading}
+            className="btn btn-primary"
+            style={{ padding: '10px 24px', flexShrink: 0 }}
+          >
+            {loading ? 'Analyzing Growth Ops...' : 'Trigger AI Growth Strategy'}
+          </button>
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', gap: '16px' }}>
+        <button
+          onClick={() => setActiveTab('campaigns')}
+          style={{
+            background: 'none',
+            border: 'none',
+            borderBottom: activeTab === 'campaigns' ? '2px solid var(--accent)' : 'none',
+            padding: '10px 4px',
+            color: activeTab === 'campaigns' ? 'var(--text-primary)' : 'var(--text-secondary)',
+            fontWeight: 600,
+            cursor: 'pointer',
+            fontSize: '0.95rem',
+            fontFamily: 'inherit'
+          }}
+        >
+          Growth Campaigns board
+        </button>
+        <button
+          onClick={() => setActiveTab('strategy')}
+          style={{
+            background: 'none',
+            border: 'none',
+            borderBottom: activeTab === 'strategy' ? '2px solid var(--accent)' : 'none',
+            padding: '10px 4px',
+            color: activeTab === 'strategy' ? 'var(--text-primary)' : 'var(--text-secondary)',
+            fontWeight: 600,
+            cursor: 'pointer',
+            fontSize: '0.95rem',
+            fontFamily: 'inherit'
+          }}
+        >
+          Acquisition & Channel Strategies
+        </button>
+      </div>
+
+      {/* Tab Panels */}
+      {activeTab === 'campaigns' ? (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '16px', alignItems: 'start' }}>
+          {/* Planned */}
+          <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '12px' }}>
+            <h4 style={{ margin: '0 0 12px 0', fontSize: '0.9rem', color: 'var(--text-secondary)', textTransform: 'uppercase', display: 'flex', justifyContent: 'space-between', fontWeight: 600 }}>
+              <span>Planned Campaigns</span>
+              <span className="badge badge-type">{planned.length}</span>
+            </h4>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {planned.map(c => <MarketingCampaignCard key={c.id} campaign={c} onStatusChange={handleStatusChange} />)}
+              {planned.length === 0 && <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-tertiary)', fontSize: '0.85rem' }}>No campaigns planned.</div>}
+            </div>
+          </div>
+
+          {/* Active */}
+          <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '12px' }}>
+            <h4 style={{ margin: '0 0 12px 0', fontSize: '0.9rem', color: 'var(--text-secondary)', textTransform: 'uppercase', display: 'flex', justifyContent: 'space-between', fontWeight: 600 }}>
+              <span>Active Experiments</span>
+              <span className="badge badge-type">{active.length}</span>
+            </h4>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {active.map(c => <MarketingCampaignCard key={c.id} campaign={c} onStatusChange={handleStatusChange} />)}
+              {active.length === 0 && <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-tertiary)', fontSize: '0.85rem' }}>No active campaigns.</div>}
+            </div>
+          </div>
+
+          {/* Completed */}
+          <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '12px' }}>
+            <h4 style={{ margin: '0 0 12px 0', fontSize: '0.9rem', color: 'var(--text-secondary)', textTransform: 'uppercase', display: 'flex', justifyContent: 'space-between', fontWeight: 600 }}>
+              <span>Completed Campaigns</span>
+              <span className="badge badge-type">{completed.length}</span>
+            </h4>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {completed.map(c => <MarketingCampaignCard key={c.id} campaign={c} onStatusChange={handleStatusChange} />)}
+              {completed.length === 0 && <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-tertiary)', fontSize: '0.85rem' }}>None completed yet.</div>}
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          {/* Growth Strategy */}
+          <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: '20px' }}>
+            <h3 style={{ margin: '0 0 12px 0', fontSize: '1.1rem', fontWeight: 600 }}>Growth Strategy</h3>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', lineHeight: '1.5', margin: 0, whiteSpace: 'pre-wrap' }}>
+              {strategy}
+            </p>
+          </div>
+
+          {/* Channel Strategy */}
+          {channelStrategy && (
+            <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: '20px' }}>
+              <h3 style={{ margin: '0 0 12px 0', fontSize: '1.1rem', fontWeight: 600 }}>Channel Strategy</h3>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', lineHeight: '1.5', margin: 0, whiteSpace: 'pre-wrap' }}>
+                {channelStrategy}
+              </p>
+            </div>
+          )}
+
+          {/* Acquisition Plan */}
+          {acquisitionPlan && (
+            <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: '20px' }}>
+              <h3 style={{ margin: '0 0 12px 0', fontSize: '1.1rem', fontWeight: 600 }}>User Acquisition Plan</h3>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', lineHeight: '1.5', margin: 0, whiteSpace: 'pre-wrap' }}>
+                {acquisitionPlan}
+              </p>
+            </div>
+          )}
+
+          {/* Growth Experiments */}
+          {experiments.length > 0 && (
+            <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: '20px' }}>
+              <h3 style={{ margin: '0 0 12px 0', fontSize: '1.1rem', fontWeight: 600 }}>Growth Experiments</h3>
+              <ul style={{ margin: 0, paddingLeft: '20px', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+                {experiments.map((e, idx) => <li key={idx} style={{ marginBottom: '6px' }}>{e}</li>)}
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MarketingCampaignCard({ campaign, onStatusChange }) {
+  const getChannelColor = (chan) => {
+    switch (chan.toLowerCase()) {
+      case 'tiktok': return '#ff0050';
+      case 'instagram': return '#c13584';
+      case 'whatsapp': return '#25d366';
+      case 'x': return '#ffffff';
+      case 'telegram': return '#0088cc';
+      default: return 'var(--text-secondary)';
+    }
+  };
+
+  return (
+    <div style={{
+      background: 'var(--bg-card)',
+      border: '1px solid var(--border)',
+      borderRadius: 'var(--radius-sm)',
+      padding: '12px',
+      boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '8px'
+    }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', gap: '8px' }}>
+        <h5 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-primary)' }}>{campaign.title}</h5>
+        <span style={{
+          fontSize: '0.7rem',
+          fontWeight: 700,
+          textTransform: 'uppercase',
+          color: getChannelColor(campaign.channel),
+          background: 'rgba(255,255,255,0.03)',
+          padding: '2px 6px',
+          borderRadius: '4px'
+        }}>
+          {campaign.channel}
+        </span>
+      </div>
+      <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
+        {campaign.description}
+      </p>
+
+      {/* Progress transitions */}
+      <div style={{ display: 'flex', gap: '4px', marginTop: '4px', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '8px' }}>
+        {campaign.status !== 'Planned' && (
+          <button
+            onClick={() => {
+              const prevs = { 'Active': 'Planned', 'Completed': 'Active' };
+              onStatusChange(campaign.id, prevs[campaign.status]);
+            }}
+            style={{ padding: '4px 8px', fontSize: '0.75rem', background: 'none', border: '1px solid var(--border)', color: 'var(--text-secondary)', cursor: 'pointer', borderRadius: '4px', flex: 1, fontFamily: 'inherit' }}
+          >
+            ← Back
+          </button>
+        )}
+        {campaign.status !== 'Completed' && (
+          <button
+            onClick={() => {
+              const nexts = { 'Planned': 'Active', 'Active': 'Completed' };
+              onStatusChange(campaign.id, nexts[campaign.status]);
+            }}
+            style={{ padding: '4px 8px', fontSize: '0.75rem', background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border)', color: 'var(--text-primary)', cursor: 'pointer', borderRadius: '4px', flex: 1, fontFamily: 'inherit' }}
+          >
+            Advance →
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function ContentStrategySection() {
+  const [posts, setPosts] = useState([]);
+  const [strategy, setStrategy] = useState('Run AI Content analysis to formulate content pillars.');
+  const [ideas, setIdeas] = useState([]);
+  const [calendar, setCalendar] = useState([]);
+  const [hooks, setHooks] = useState([]);
+  const [goals, setGoals] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState('drafts'); // 'drafts' | 'calendar' | 'strategy'
+
+  const fetchPosts = async () => {
+    try {
+      const token = localStorage.getItem('bookflix_token');
+      const res = await fetch('/api/admin/content/posts', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setPosts(data);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  useEffect(() => {
+    fetchPosts();
+  }, []);
+
+  const handleAnalyze = async () => {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('bookflix_token');
+      const res = await fetch('/api/admin/content/analyze', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ goals })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message);
+
+      setStrategy(data.strategy);
+      setIdeas(data.ideas);
+      setCalendar(data.calendar);
+      setHooks(data.hooks);
+      setPosts(data.posts);
+    } catch (err) {
+      alert('Failed to execute content analysis: ' + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleStatusChange = async (id, newStatus) => {
+    try {
+      const token = localStorage.getItem('bookflix_token');
+      const res = await fetch(`/api/admin/content/posts/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ status: newStatus })
+      });
+      if (res.ok) {
+        setPosts(prev => prev.map(p => p.id === id ? { ...p, status: newStatus } : p));
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  // Group posts
+  const drafts = posts.filter(p => p.status === 'Draft');
+  const scheduled = posts.filter(p => p.status === 'Scheduled');
+  const published = posts.filter(p => p.status === 'Published');
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', marginTop: 'var(--space-md)' }}>
+      {/* Configuration Header */}
+      <div style={{
+        background: 'var(--bg-card)',
+        border: '1px solid var(--border)',
+        borderRadius: 'var(--radius-lg)',
+        padding: '20px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '12px'
+      }}>
+        <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600 }}>Configure AI Content Strategist</h3>
+        <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', margin: 0 }}>
+          Specify content topics or platforms focus (e.g. TikTok video hooks, Twitter threads, WhatsApp study hacks, or promotional campaigns).
+        </p>
+        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+          <input
+            type="text"
+            placeholder="Focus copy targets (e.g., Biology midterms summaries TikTok, X books threads)..."
+            value={goals}
+            onChange={e => setGoals(e.target.value)}
+            style={{
+              flex: 1,
+              padding: '10px 16px',
+              background: 'var(--bg-primary)',
+              border: '1px solid var(--border)',
+              borderRadius: 'var(--radius-md)',
+              color: '#fff',
+              fontSize: '0.9rem',
+              fontFamily: 'inherit'
+            }}
+          />
+          <button
+            onClick={handleAnalyze}
+            disabled={loading}
+            className="btn btn-primary"
+            style={{ padding: '10px 24px', flexShrink: 0 }}
+          >
+            {loading ? 'Generating Copy...' : 'Trigger AI Copy Generation'}
+          </button>
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', gap: '16px' }}>
+        <button
+          onClick={() => setActiveTab('drafts')}
+          style={{
+            background: 'none',
+            border: 'none',
+            borderBottom: activeTab === 'drafts' ? '2px solid var(--accent)' : 'none',
+            padding: '10px 4px',
+            color: activeTab === 'drafts' ? 'var(--text-primary)' : 'var(--text-secondary)',
+            fontWeight: 600,
+            cursor: 'pointer',
+            fontSize: '0.95rem',
+            fontFamily: 'inherit'
+          }}
+        >
+          Draft Promotional Copies
+        </button>
+        <button
+          onClick={() => setActiveTab('calendar')}
+          style={{
+            background: 'none',
+            border: 'none',
+            borderBottom: activeTab === 'calendar' ? '2px solid var(--accent)' : 'none',
+            padding: '10px 4px',
+            color: activeTab === 'calendar' ? 'var(--text-primary)' : 'var(--text-secondary)',
+            fontWeight: 600,
+            cursor: 'pointer',
+            fontSize: '0.95rem',
+            fontFamily: 'inherit'
+          }}
+        >
+          Weekly Content Calendar
+        </button>
+        <button
+          onClick={() => setActiveTab('strategy')}
+          style={{
+            background: 'none',
+            border: 'none',
+            borderBottom: activeTab === 'strategy' ? '2px solid var(--accent)' : 'none',
+            padding: '10px 4px',
+            color: activeTab === 'strategy' ? 'var(--text-primary)' : 'var(--text-secondary)',
+            fontWeight: 600,
+            cursor: 'pointer',
+            fontSize: '0.95rem',
+            fontFamily: 'inherit'
+          }}
+        >
+          Pillars, Strategy & Viral Hooks
+        </button>
+      </div>
+
+      {/* Tab Panels */}
+      {activeTab === 'drafts' ? (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '16px', alignItems: 'start' }}>
+          {/* Drafts */}
+          <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '12px' }}>
+            <h4 style={{ margin: '0 0 12px 0', fontSize: '0.9rem', color: 'var(--text-secondary)', textTransform: 'uppercase', display: 'flex', justifyContent: 'space-between', fontWeight: 600 }}>
+              <span>Copy Drafts</span>
+              <span className="badge badge-type">{drafts.length}</span>
+            </h4>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {drafts.map(p => <ContentPostCard key={p.id} post={p} onStatusChange={handleStatusChange} />)}
+              {drafts.length === 0 && <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-tertiary)', fontSize: '0.85rem' }}>No drafts generated.</div>}
+            </div>
+          </div>
+
+          {/* Scheduled */}
+          <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '12px' }}>
+            <h4 style={{ margin: '0 0 12px 0', fontSize: '0.9rem', color: 'var(--text-secondary)', textTransform: 'uppercase', display: 'flex', justifyContent: 'space-between', fontWeight: 600 }}>
+              <span>Scheduled Posts</span>
+              <span className="badge badge-type">{scheduled.length}</span>
+            </h4>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {scheduled.map(p => <ContentPostCard key={p.id} post={p} onStatusChange={handleStatusChange} />)}
+              {scheduled.length === 0 && <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-tertiary)', fontSize: '0.85rem' }}>No posts scheduled.</div>}
+            </div>
+          </div>
+
+          {/* Published */}
+          <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '12px' }}>
+            <h4 style={{ margin: '0 0 12px 0', fontSize: '0.9rem', color: 'var(--text-secondary)', textTransform: 'uppercase', display: 'flex', justifyContent: 'space-between', fontWeight: 600 }}>
+              <span>Published Campaign Logs</span>
+              <span className="badge badge-type">{published.length}</span>
+            </h4>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {published.map(p => <ContentPostCard key={p.id} post={p} onStatusChange={handleStatusChange} />)}
+              {published.length === 0 && <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-tertiary)', fontSize: '0.85rem' }}>None published yet.</div>}
+            </div>
+          </div>
+        </div>
+      ) : activeTab === 'calendar' ? (
+        <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: '20px' }}>
+          <h3 style={{ margin: '0 0 16px 0', fontSize: '1.1rem', fontWeight: 600 }}>Weekly Calendar Schedule</h3>
+          {calendar.length === 0 ? (
+            <p style={{ color: 'var(--text-tertiary)', fontSize: '0.9rem', margin: 0 }}>Run the content strategist to generate weekly schedule tables.</p>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              {calendar.map((item, idx) => (
+                <div key={idx} style={{ display: 'flex', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '12px', gap: '16px' }}>
+                  <div style={{ width: '100px', fontWeight: 700, color: 'var(--accent)' }}>{item.day}</div>
+                  <div style={{ width: '120px', color: 'var(--text-muted)' }}><span className="badge badge-type">{item.topic}</span></div>
+                  <div style={{ flex: 1, color: 'var(--text-secondary)', fontSize: '0.9rem' }}>{item.task}</div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          {/* Strategy */}
+          <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: '20px' }}>
+            <h3 style={{ margin: '0 0 12px 0', fontSize: '1.1rem', fontWeight: 600 }}>Social Content Strategy</h3>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', lineHeight: '1.5', margin: 0, whiteSpace: 'pre-wrap' }}>
+              {strategy}
+            </p>
+          </div>
+
+          {/* Daily Ideas */}
+          {ideas.length > 0 && (
+            <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: '20px' }}>
+              <h3 style={{ margin: '0 0 12px 0', fontSize: '1.1rem', fontWeight: 600 }}>Daily content ideas</h3>
+              <ul style={{ margin: 0, paddingLeft: '20px', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+                {ideas.map((e, idx) => <li key={idx} style={{ marginBottom: '6px' }}>{e}</li>)}
+              </ul>
+            </div>
+          )}
+
+          {/* Viral Hooks */}
+          {hooks.length > 0 && (
+            <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: '20px' }}>
+              <h3 style={{ margin: '0 0 12px 0', fontSize: '1.1rem', fontWeight: 600, color: '#ff3b30' }}>Viral Hooks List</h3>
+              <ul style={{ margin: 0, paddingLeft: '20px', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+                {hooks.map((e, idx) => <li key={idx} style={{ marginBottom: '6px' }}>{e}</li>)}
+              </ul>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ContentPostCard({ post, onStatusChange }) {
+  const getPlatformColor = (plat) => {
+    switch (plat.toLowerCase()) {
+      case 'x': return '#ffffff';
+      case 'instagram': return '#c13584';
+      case 'tiktok': return '#ff0050';
+      case 'whatsapp': return '#25d366';
+      case 'telegram': return '#0088cc';
+      default: return 'var(--text-secondary)';
+    }
+  };
+
+  return (
+    <div style={{
+      background: 'var(--bg-card)',
+      border: '1px solid var(--border)',
+      borderRadius: 'var(--radius-sm)',
+      padding: '12px',
+      boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '8px'
+    }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', gap: '8px' }}>
+        <h5 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-primary)' }}>{post.title}</h5>
+        <span style={{
+          fontSize: '0.7rem',
+          fontWeight: 700,
+          textTransform: 'uppercase',
+          color: getPlatformColor(post.platform),
+          background: 'rgba(255,255,255,0.03)',
+          padding: '2px 6px',
+          borderRadius: '4px'
+        }}>
+          {post.platform}
+        </span>
+      </div>
+      <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: '1.4', whiteSpace: 'pre-wrap' }}>
+        {post.body}
+      </p>
+
+      {/* Progress transitions */}
+      <div style={{ display: 'flex', gap: '4px', marginTop: '4px', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '8px' }}>
+        {post.status !== 'Draft' && (
+          <button
+            onClick={() => {
+              const prevs = { 'Scheduled': 'Draft', 'Published': 'Scheduled' };
+              onStatusChange(post.id, prevs[post.status]);
+            }}
+            style={{ padding: '4px 8px', fontSize: '0.75rem', background: 'none', border: '1px solid var(--border)', color: 'var(--text-secondary)', cursor: 'pointer', borderRadius: '4px', flex: 1, fontFamily: 'inherit' }}
+          >
+            ← Back
+          </button>
+        )}
+        {post.status !== 'Published' && (
+          <button
+            onClick={() => {
+              const nexts = { 'Draft': 'Scheduled', 'Scheduled': 'Published' };
+              onStatusChange(post.id, nexts[post.status]);
+            }}
+            style={{ padding: '4px 8px', fontSize: '0.75rem', background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border)', color: 'var(--text-primary)', cursor: 'pointer', borderRadius: '4px', flex: 1, fontFamily: 'inherit' }}
+          >
+            Advance →
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function SocialSection() {
+  const [metrics, setMetrics] = useState([]);
+  const [strategy, setStrategy] = useState('Run AI Social analysis to configure publishing strategies.');
+  const [schedule, setSchedule] = useState([]);
+  const [report, setReport] = useState('');
+  const [goals, setGoals] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState('metrics'); // 'metrics' | 'schedule' | 'strategy'
+
+  const fetchMetrics = async () => {
+    try {
+      const token = localStorage.getItem('bookflix_token');
+      const res = await fetch('/api/admin/social/metrics', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setMetrics(data);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  useEffect(() => {
+    fetchMetrics();
+  }, []);
+
+  const handleAnalyze = async () => {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('bookflix_token');
+      const res = await fetch('/api/admin/social/analyze', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ goals })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message);
+
+      setStrategy(data.publishingStrategy);
+      setSchedule(data.postingSchedule);
+      setReport(data.engagementReports);
+      setMetrics(data.metrics);
+    } catch (err) {
+      alert('Failed to execute social analysis: ' + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUpdateCounts = async (id, updatedFields) => {
+    try {
+      const token = localStorage.getItem('bookflix_token');
+      const res = await fetch(`/api/admin/social/metrics/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(updatedFields)
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setMetrics(prev => prev.map(m => m.id === id ? data : m));
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', marginTop: 'var(--space-md)' }}>
+      {/* Configuration Header */}
+      <div style={{
+        background: 'var(--bg-card)',
+        border: '1px solid var(--border)',
+        borderRadius: 'var(--radius-lg)',
+        padding: '20px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '12px'
+      }}>
+        <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600 }}>Configure AI Social Manager</h3>
+        <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', margin: 0 }}>
+          Direct the Social Agent to optimize publishing schedules and track conversion metrics (installs, clicks, shares) across platforms.
+        </p>
+        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+          <input
+            type="text"
+            placeholder="Focus parameters (e.g., Increase TikTok study clips, optimize X thread slots)..."
+            value={goals}
+            onChange={e => setGoals(e.target.value)}
+            style={{
+              flex: 1,
+              padding: '10px 16px',
+              background: 'var(--bg-primary)',
+              border: '1px solid var(--border)',
+              borderRadius: 'var(--radius-md)',
+              color: '#fff',
+              fontSize: '0.9rem',
+              fontFamily: 'inherit'
+            }}
+          />
+          <button
+            onClick={handleAnalyze}
+            disabled={loading}
+            className="btn btn-primary"
+            style={{ padding: '10px 24px', flexShrink: 0 }}
+          >
+            {loading ? 'Analyzing Engagement...' : 'Trigger AI Engagement Analysis'}
+          </button>
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', gap: '16px' }}>
+        <button
+          onClick={() => setActiveTab('metrics')}
+          style={{
+            background: 'none',
+            border: 'none',
+            borderBottom: activeTab === 'metrics' ? '2px solid var(--accent)' : 'none',
+            padding: '10px 4px',
+            color: activeTab === 'metrics' ? 'var(--text-primary)' : 'var(--text-secondary)',
+            fontWeight: 600,
+            cursor: 'pointer',
+            fontSize: '0.95rem',
+            fontFamily: 'inherit'
+          }}
+        >
+          Social Conversion Metrics
+        </button>
+        <button
+          onClick={() => setActiveTab('schedule')}
+          style={{
+            background: 'none',
+            border: 'none',
+            borderBottom: activeTab === 'schedule' ? '2px solid var(--accent)' : 'none',
+            padding: '10px 4px',
+            color: activeTab === 'schedule' ? 'var(--text-primary)' : 'var(--text-secondary)',
+            fontWeight: 600,
+            cursor: 'pointer',
+            fontSize: '0.95rem',
+            fontFamily: 'inherit'
+          }}
+        >
+          Automated Posting Schedule
+        </button>
+        <button
+          onClick={() => setActiveTab('strategy')}
+          style={{
+            background: 'none',
+            border: 'none',
+            borderBottom: activeTab === 'strategy' ? '2px solid var(--accent)' : 'none',
+            padding: '10px 4px',
+            color: activeTab === 'strategy' ? 'var(--text-primary)' : 'var(--text-secondary)',
+            fontWeight: 600,
+            cursor: 'pointer',
+            fontSize: '0.95rem',
+            fontFamily: 'inherit'
+          }}
+        >
+          Publishing Strategy & Reports
+        </button>
+      </div>
+
+      {/* Tab Panels */}
+      {activeTab === 'metrics' ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
+            {metrics.map(m => (
+              <SocialMetricCard key={m.id} metric={m} onUpdate={handleUpdateCounts} />
+            ))}
+            {metrics.length === 0 && (
+              <div style={{ gridColumn: '1/-1', padding: '40px', textAlign: 'center', color: 'var(--text-tertiary)' }}>
+                No active social metrics records. Trigger the AI Strategy to populate mock entries.
+              </div>
+            )}
+          </div>
+        </div>
+      ) : activeTab === 'schedule' ? (
+        <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: '20px' }}>
+          <h3 style={{ margin: '0 0 16px 0', fontSize: '1.1rem', fontWeight: 600 }}>Social Posting Schedule</h3>
+          {schedule.length === 0 ? (
+            <p style={{ color: 'var(--text-tertiary)', fontSize: '0.9rem', margin: 0 }}>Run the social manager to generate scheduled post timecards.</p>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {schedule.map((item, idx) => (
+                <div key={idx} style={{ display: 'flex', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '10px', gap: '16px', alignItems: 'center' }}>
+                  <div style={{ width: '80px', fontWeight: 700, color: 'var(--accent)' }}>{item.time}</div>
+                  <div style={{ width: '100px' }}><span className="badge badge-type">{item.platform}</span></div>
+                  <div style={{ flex: 1, color: 'var(--text-primary)', fontWeight: 500 }}>{item.postTitle}</div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          {/* Strategy */}
+          <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: '20px' }}>
+            <h3 style={{ margin: '0 0 12px 0', fontSize: '1.1rem', fontWeight: 600 }}>Publishing Strategy</h3>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', lineHeight: '1.5', margin: 0, whiteSpace: 'pre-wrap' }}>
+              {strategy}
+            </p>
+          </div>
+
+          {/* Engagement Reports */}
+          {report && (
+            <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: '20px' }}>
+              <h3 style={{ margin: '0 0 12px 0', fontSize: '1.1rem', fontWeight: 600 }}>Engagement & sentiment insights</h3>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', lineHeight: '1.5', margin: 0, whiteSpace: 'pre-wrap' }}>
+                {report}
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SocialMetricCard({ metric, onUpdate }) {
+  const getPlatformColor = (plat) => {
+    switch (plat.toLowerCase()) {
+      case 'x': return '#ffffff';
+      case 'instagram': return '#c13584';
+      case 'tiktok': return '#ff0050';
+      case 'whatsapp': return '#25d366';
+      case 'telegram': return '#0088cc';
+      default: return 'var(--text-secondary)';
+    }
+  };
+
+  return (
+    <div style={{
+      background: 'var(--bg-card)',
+      border: '1px solid var(--border)',
+      borderRadius: 'var(--radius-md)',
+      padding: '16px',
+      boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '12px'
+    }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 600, color: 'var(--text-primary)' }}>{metric.postTitle}</h4>
+        <span style={{
+          fontSize: '0.75rem',
+          fontWeight: 700,
+          color: getPlatformColor(metric.platform),
+          background: 'rgba(255,255,255,0.03)',
+          padding: '2px 8px',
+          borderRadius: '4px'
+        }}>
+          {metric.platform}
+        </span>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '10px' }}>
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          <span style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)' }}>Likes</span>
+          <strong style={{ fontSize: '0.95rem' }}>{metric.likes}</strong>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          <span style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)' }}>Comments</span>
+          <strong style={{ fontSize: '0.95rem' }}>{metric.comments}</strong>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          <span style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)' }}>Shares</span>
+          <strong style={{ fontSize: '0.95rem' }}>{metric.shares}</strong>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', marginTop: '6px' }}>
+          <span style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)' }}>Saves</span>
+          <strong style={{ fontSize: '0.95rem' }}>{metric.saves}</strong>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', marginTop: '6px' }}>
+          <span style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)' }}>Clicks</span>
+          <strong style={{ fontSize: '0.95rem', color: 'var(--accent)' }}>{metric.clicks}</strong>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', marginTop: '6px' }}>
+          <span style={{ fontSize: '0.7rem', color: 'var(--text-tertiary)' }}>Installs</span>
+          <strong style={{ fontSize: '0.95rem', color: '#46d369' }}>{metric.installs}</strong>
+        </div>
+      </div>
+
+      {/* Button to simulate click event */}
+      <div style={{ display: 'flex', gap: '8px', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '10px' }}>
+        <button
+          onClick={() => onUpdate(metric.id, { clicks: metric.clicks + 10, installs: metric.installs + 1 })}
+          style={{
+            flex: 1,
+            padding: '6px 12px',
+            fontSize: '0.75rem',
+            background: 'rgba(255,255,255,0.04)',
+            border: '1px solid var(--border)',
+            color: 'var(--text-primary)',
+            cursor: 'pointer',
+            borderRadius: '4px',
+            fontFamily: 'inherit'
+          }}
+        >
+          Simulate Click (+10 clicks, +1 install)
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function AnalyticsSection() {
+  const [report, setReport] = useState(null);
+  const [goals, setGoals] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState('kpis'); // 'kpis' | 'funnel' | 'insights'
+
+  const fetchReports = async () => {
+    try {
+      const token = localStorage.getItem('bookflix_token');
+      const res = await fetch('/api/admin/analytics/reports', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.length > 0) {
+          setReport(data[0]); // Show latest report
+        }
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  useEffect(() => {
+    fetchReports();
+  }, []);
+
+  const handleAnalyze = async () => {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('bookflix_token');
+      const res = await fetch('/api/admin/analytics/analyze', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ goals })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message);
+
+      setReport(data);
+    } catch (err) {
+      alert('Failed to execute analytics audit: ' + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', marginTop: 'var(--space-md)' }}>
+      {/* Configuration Header */}
+      <div style={{
+        background: 'var(--bg-card)',
+        border: '1px solid var(--border)',
+        borderRadius: 'var(--radius-lg)',
+        padding: '20px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '12px'
+      }}>
+        <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600 }}>Configure AI Data Strategist</h3>
+        <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', margin: 0 }}>
+          Direct the Analytics Agent to scan user activity records, retention churn signals, and acquisition leaks.
+        </p>
+        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+          <input
+            type="text"
+            placeholder="Focus KPIs audit (e.g., Optimize D1 to D7 retention cohorts, audit TikTok CAC)..."
+            value={goals}
+            onChange={e => setGoals(e.target.value)}
+            style={{
+              flex: 1,
+              padding: '10px 16px',
+              background: 'var(--bg-primary)',
+              border: '1px solid var(--border)',
+              borderRadius: 'var(--radius-md)',
+              color: '#fff',
+              fontSize: '0.9rem',
+              fontFamily: 'inherit'
+            }}
+          />
+          <button
+            onClick={handleAnalyze}
+            disabled={loading}
+            className="btn btn-primary"
+            style={{ padding: '10px 24px', flexShrink: 0 }}
+          >
+            {loading ? 'Evaluating Telemetry...' : 'Trigger AI Data Audit'}
+          </button>
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', gap: '16px' }}>
+        <button
+          onClick={() => setActiveTab('kpis')}
+          style={{
+            background: 'none',
+            border: 'none',
+            borderBottom: activeTab === 'kpis' ? '2px solid var(--accent)' : 'none',
+            padding: '10px 4px',
+            color: activeTab === 'kpis' ? 'var(--text-primary)' : 'var(--text-secondary)',
+            fontWeight: 600,
+            cursor: 'pointer',
+            fontSize: '0.95rem',
+            fontFamily: 'inherit'
+          }}
+        >
+          Primary Growth & Marketing KPIs
+        </button>
+        <button
+          onClick={() => setActiveTab('funnel')}
+          style={{
+            background: 'none',
+            border: 'none',
+            borderBottom: activeTab === 'funnel' ? '2px solid var(--accent)' : 'none',
+            padding: '10px 4px',
+            color: activeTab === 'funnel' ? 'var(--text-primary)' : 'var(--text-secondary)',
+            fontWeight: 600,
+            cursor: 'pointer',
+            fontSize: '0.95rem',
+            fontFamily: 'inherit'
+          }}
+        >
+          Cohort Retention & Churn
+        </button>
+        <button
+          onClick={() => setActiveTab('insights')}
+          style={{
+            background: 'none',
+            border: 'none',
+            borderBottom: activeTab === 'insights' ? '2px solid var(--accent)' : 'none',
+            padding: '10px 4px',
+            color: activeTab === 'insights' ? 'var(--text-primary)' : 'var(--text-secondary)',
+            fontWeight: 600,
+            cursor: 'pointer',
+            fontSize: '0.95rem',
+            fontFamily: 'inherit'
+          }}
+        >
+          Leakage Audits & Recommendations
+        </button>
+      </div>
+
+      {/* Tab Panels */}
+      {!report ? (
+        <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-tertiary)', background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)' }}>
+          No active telemetry reports generated yet. Trigger the AI Data Audit to inspect system metrics.
+        </div>
+      ) : activeTab === 'kpis' ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          {/* KPI Cards */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
+            <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '16px' }}>
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 600 }}>Active Installs</span>
+              <h2 style={{ fontSize: '2rem', margin: '8px 0 0 0', fontWeight: 700, color: 'var(--accent)' }}>{report.growthKpis?.installs || 0}</h2>
+            </div>
+            <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '16px' }}>
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 600 }}>Total Signups</span>
+              <h2 style={{ fontSize: '2rem', margin: '8px 0 0 0', fontWeight: 700, color: '#fff' }}>{report.growthKpis?.signups || 0}</h2>
+            </div>
+            <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '16px' }}>
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 600 }}>Active Readers</span>
+              <h2 style={{ fontSize: '2rem', margin: '8px 0 0 0', fontWeight: 700, color: '#4facfe' }}>{report.growthKpis?.active_users || 0}</h2>
+            </div>
+            <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '16px' }}>
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 600 }}>TikTok / X CAC</span>
+              <h2 style={{ fontSize: '2rem', margin: '8px 0 0 0', fontWeight: 700, color: '#46d369' }}>${report.marketingKpis?.cac_usd || 0}</h2>
+            </div>
+          </div>
+
+          {/* Growth Summary */}
+          <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: '20px' }}>
+            <h3 style={{ margin: '0 0 12px 0', fontSize: '1.1rem', fontWeight: 600 }}>Primary Growth Metrics Summary</h3>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', lineHeight: '1.5', margin: 0 }}>
+              {report.growthReport}
+            </p>
+          </div>
+        </div>
+      ) : activeTab === 'funnel' ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          {/* Retention Stats */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+            <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '16px' }}>
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 600 }}>Day 1 Cohort</span>
+              <h2 style={{ fontSize: '2.2rem', margin: '8px 0 0 0', fontWeight: 700 }}>{report.retentionKpis?.d1_retention_pct || 0}%</h2>
+            </div>
+            <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '16px' }}>
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 600 }}>Day 7 Cohort</span>
+              <h2 style={{ fontSize: '2.2rem', margin: '8px 0 0 0', fontWeight: 700 }}>{report.retentionKpis?.d7_retention_pct || 0}%</h2>
+            </div>
+            <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '16px' }}>
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 600 }}>Day 30 Cohort</span>
+              <h2 style={{ fontSize: '2.2rem', margin: '8px 0 0 0', fontWeight: 700 }}>{report.retentionKpis?.d30_retention_pct || 0}%</h2>
+            </div>
+            <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '16px' }}>
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 600 }}>Monthly Churn</span>
+              <h2 style={{ fontSize: '2.2rem', margin: '8px 0 0 0', fontWeight: 700, color: '#ff3b30' }}>{report.retentionKpis?.churn_rate_pct || 0}%</h2>
+            </div>
+          </div>
+
+          {/* Retention Cohorts Description */}
+          <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: '20px' }}>
+            <h3 style={{ margin: '0 0 12px 0', fontSize: '1.1rem', fontWeight: 600 }}>Retention & Study Engagement Report</h3>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', lineHeight: '1.5', margin: 0 }}>
+              {report.retentionReport}
+            </p>
+          </div>
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          {/* Weakness leak audit */}
+          <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: '20px' }}>
+            <h3 style={{ margin: '0 0 12px 0', fontSize: '1.1rem', fontWeight: 600, color: '#ff3b30' }}>Detected Drop-off Leakages</h3>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', lineHeight: '1.5', margin: 0 }}>
+              {report.weaknessReport}
+            </p>
+          </div>
+
+          {/* Recommendations */}
+          <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: '20px' }}>
+            <h3 style={{ margin: '0 0 12px 0', fontSize: '1.1rem', fontWeight: 600, color: 'var(--accent)' }}>AI Optimization Action items</h3>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', lineHeight: '1.6', margin: 0, whiteSpace: 'pre-wrap' }}>
+              {report.recommendations}
+            </p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MasterControlSection() {
+  const [decision, setDecision] = useState(null);
+  const [goals, setGoals] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [cascadeLoading, setCascadeLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState('dashboard'); // 'dashboard' | 'priorities' | 'roadmap'
+
+  const fetchDecisions = async () => {
+    try {
+      const token = localStorage.getItem('bookflix_token');
+      const res = await fetch('/api/admin/master/decisions', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data && data.length > 0) {
+          setDecision(data[0]); // Show latest coordinator decision
+        }
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  useEffect(() => {
+    fetchDecisions();
+  }, []);
+
+  const handleAnalyze = async () => {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('bookflix_token');
+      const res = await fetch('/api/admin/master/analyze', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ goals })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message);
+
+      setDecision(data);
+    } catch (err) {
+      alert('Failed to execute Master Agent coordinator check: ' + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRunCascade = async () => {
+    setCascadeLoading(true);
+    try {
+      const token = localStorage.getItem('bookflix_token');
+      const res = await fetch('/api/admin/orchestrate/run', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message);
+
+      setDecision(data.savedDecision);
+      alert('Cascading agent pipeline successfully executed!');
+    } catch (err) {
+      alert('Failed to run cascading pipeline orchestration: ' + err.message);
+    } finally {
+      setCascadeLoading(false);
+    }
+  };
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', marginTop: 'var(--space-md)' }}>
+      {/* Configuration Header */}
+      <div style={{
+        background: 'var(--bg-card)',
+        border: '1px solid var(--border)',
+        borderRadius: 'var(--radius-lg)',
+        padding: '20px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '12px'
+      }}>
+        <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600 }}>Configure Master AI System Coordinator</h3>
+        <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', margin: 0 }}>
+          Manage all BookFlix AI Agents. Run a single coordination analysis or trigger the **Cascading Execution pipeline** to run all 8 agents sequentially.
+        </p>
+        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+          <input
+            type="text"
+            placeholder="Focus directives (e.g., Focus on student viral loops, optimize engineering backlog cost)..."
+            value={goals}
+            onChange={e => setGoals(e.target.value)}
+            style={{
+              flex: 1,
+              padding: '10px 16px',
+              background: 'var(--bg-primary)',
+              border: '1px solid var(--border)',
+              borderRadius: 'var(--radius-md)',
+              color: '#fff',
+              fontSize: '0.9rem',
+              fontFamily: 'inherit'
+            }}
+          />
+          <button
+            onClick={handleAnalyze}
+            disabled={loading || cascadeLoading}
+            className="btn btn-secondary"
+            style={{ padding: '10px 20px', flexShrink: 0 }}
+          >
+            {loading ? 'Analyzing...' : 'Run Master Check'}
+          </button>
+          <button
+            onClick={handleRunCascade}
+            disabled={loading || cascadeLoading}
+            className="btn btn-primary"
+            style={{ padding: '10px 24px', flexShrink: 0, background: '#4facfe', borderColor: '#4facfe' }}
+          >
+            {cascadeLoading ? 'Running Cascade Pipeline...' : 'Run Cascading Pipeline Trigger'}
+          </button>
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', gap: '16px' }}>
+        <button
+          onClick={() => setActiveTab('dashboard')}
+          style={{
+            background: 'none',
+            border: 'none',
+            borderBottom: activeTab === 'dashboard' ? '2px solid var(--accent)' : 'none',
+            padding: '10px 4px',
+            color: activeTab === 'dashboard' ? 'var(--text-primary)' : 'var(--text-secondary)',
+            fontWeight: 600,
+            cursor: 'pointer',
+            fontSize: '0.95rem',
+            fontFamily: 'inherit'
+          }}
+        >
+          Coordinated System Health
+        </button>
+        <button
+          onClick={() => setActiveTab('priorities')}
+          style={{
+            background: 'none',
+            border: 'none',
+            borderBottom: activeTab === 'priorities' ? '2px solid var(--accent)' : 'none',
+            padding: '10px 4px',
+            color: activeTab === 'priorities' ? 'var(--text-primary)' : 'var(--text-secondary)',
+            fontWeight: 600,
+            cursor: 'pointer',
+            fontSize: '0.95rem',
+            fontFamily: 'inherit'
+          }}
+        >
+          Priority Ranking Backlog
+        </button>
+        <button
+          onClick={() => setActiveTab('roadmap')}
+          style={{
+            background: 'none',
+            border: 'none',
+            borderBottom: activeTab === 'roadmap' ? '2px solid var(--accent)' : 'none',
+            padding: '10px 4px',
+            color: activeTab === 'roadmap' ? 'var(--text-primary)' : 'var(--text-secondary)',
+            fontWeight: 600,
+            cursor: 'pointer',
+            fontSize: '0.95rem',
+            fontFamily: 'inherit'
+          }}
+        >
+          AI Coordinated Roadmap
+        </button>
+      </div>
+
+      {/* Tab Panels */}
+      {!decision ? (
+        <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-tertiary)', background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)' }}>
+          No coordinated decisions generated yet. Trigger the Master Check or Cascading Pipeline above.
+        </div>
+      ) : activeTab === 'dashboard' ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          {/* Health Index Cards */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+            <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '16px' }}>
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 600 }}>Growth Index</span>
+              <h2 style={{ fontSize: '2rem', margin: '8px 0 0 0', fontWeight: 700, color: 'var(--accent)' }}>{decision.systemHealth?.growth_index || 0}%</h2>
+            </div>
+            <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '16px' }}>
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 600 }}>Retention Index</span>
+              <h2 style={{ fontSize: '2rem', margin: '8px 0 0 0', fontWeight: 700, color: '#ff3b30' }}>{decision.systemHealth?.retention_index || 0}%</h2>
+            </div>
+            <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '16px' }}>
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 600 }}>UX Index</span>
+              <h2 style={{ fontSize: '2rem', margin: '8px 0 0 0', fontWeight: 700, color: '#4facfe' }}>{decision.systemHealth?.ux_index || 0}%</h2>
+            </div>
+            <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '16px' }}>
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 600 }}>Code Stability</span>
+              <h2 style={{ fontSize: '2rem', margin: '8px 0 0 0', fontWeight: 700, color: '#46d369' }}>{decision.systemHealth?.code_stability_index || 0}%</h2>
+            </div>
+          </div>
+
+          {/* Strategic Directive */}
+          <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: '20px' }}>
+            <h3 style={{ margin: '0 0 12px 0', fontSize: '1.1rem', fontWeight: 600 }}>Central Strategic Directive</h3>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', lineHeight: '1.5', margin: 0 }}>
+              {decision.strategicDecisions}
+            </p>
+          </div>
+        </div>
+      ) : activeTab === 'priorities' ? (
+        <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: '20px' }}>
+          <h3 style={{ margin: '0 0 16px 0', fontSize: '1.1rem', fontWeight: 600 }}>Backlog Prioritization Ranking</h3>
+          {decision.priorityRanking?.length === 0 ? (
+            <p style={{ color: 'var(--text-tertiary)', fontSize: '0.9rem', margin: 0 }}>No priorities ranked.</p>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              {decision.priorityRanking?.map((item, idx) => (
+                <div key={idx} style={{ display: 'flex', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '12px', gap: '16px', alignItems: 'start' }}>
+                  <div style={{ width: '40px', fontWeight: 700, color: 'var(--accent)', fontSize: '1.2rem' }}>#{item.rank}</div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: 600, color: 'var(--text-primary)', display: 'flex', gap: '8px', alignItems: 'center' }}>
+                      {item.taskName}
+                      <span className="badge badge-type">{item.assignedAgent}</span>
+                    </div>
+                    <div style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginTop: '4px' }}>{item.rationale}</div>
+                  </div>
+                  <div style={{ width: '120px', textAlign: 'right', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Impact: <strong style={{ color: item.impact === 'High' ? '#46d369' : '#fff' }}>{item.impact}</strong></span>
+                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Cost: <strong style={{ color: item.cost === 'Low' ? '#4facfe' : '#fff' }}>{item.cost}</strong></span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      ) : (
+        <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius-lg)', padding: '20px' }}>
+          <h3 style={{ margin: '0 0 16px 0', fontSize: '1.1rem', fontWeight: 600 }}>Multi-Phase Execution Roadmap</h3>
+          {decision.executionRoadmap?.length === 0 ? (
+            <p style={{ color: 'var(--text-tertiary)', fontSize: '0.9rem', margin: 0 }}>No roadmap compiled.</p>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              {decision.executionRoadmap?.map((item, idx) => (
+                <div key={idx} style={{ display: 'flex', gap: '16px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                    <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: 'var(--accent)' }}></div>
+                    {idx !== decision.executionRoadmap.length - 1 && <div style={{ width: '2px', flex: 1, background: 'var(--border)' }}></div>}
+                  </div>
+                  <div style={{ flex: 1, paddingBottom: '16px' }}>
+                    <h4 style={{ margin: '0 0 4px 0', fontSize: '1rem', fontWeight: 700, color: 'var(--accent)' }}>{item.phase}</h4>
+                    <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-secondary)' }}>{item.objective}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
   );
 }
 

@@ -1103,11 +1103,11 @@ ul, ol { list-style: none; }
 
 .reader-progress {
   position: fixed;
-  top: 56px;
+  top: 0;
   left: 0;
-  height: 3px;
+  height: 4px;
   background: var(--accent);
-  z-index: 100;
+  z-index: 1001; /* High z-index to stay visible above toolbar and settings panels */
   transition: width 100ms linear;
 }
 
@@ -2428,6 +2428,120 @@ ul, ol { list-style: none; }
 div[style*="eq-bar"] {
   transform-origin: bottom;
 }
+
+/* === AI Librarian Chat Drawer === */
+.librarian-drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 380px;
+  height: 100vh;
+  z-index: 1050;
+  background: var(--bg-card);
+  border-left: 1px solid var(--border);
+  box-shadow: var(--shadow-xl);
+  transform: translateX(100%);
+  transition: transform var(--transition-spring);
+  display: flex;
+  flex-direction: column;
+}
+
+.librarian-drawer.open {
+  transform: translateX(0);
+}
+
+.librarian-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--bg-secondary);
+}
+
+.librarian-chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.librarian-message {
+  max-width: 85%;
+  padding: 12px 16px;
+  border-radius: var(--radius-lg);
+  font-size: 0.9rem;
+  line-height: 1.5;
+  word-wrap: break-word;
+}
+
+.librarian-message.user {
+  align-self: flex-end;
+  background: var(--accent);
+  color: #fff;
+  border-bottom-right-radius: var(--radius-sm);
+  box-shadow: 0 4px 12px rgba(229, 9, 20, 0.25);
+}
+
+.librarian-message.assistant {
+  align-self: flex-start;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  color: #eee;
+  border-bottom-left-radius: var(--radius-sm);
+}
+
+.librarian-chat-input-container {
+  padding: 16px 20px;
+  border-top: 1px solid var(--border);
+  background: var(--bg-secondary);
+  display: flex;
+  gap: 10px;
+}
+
+.librarian-chat-input {
+  flex: 1;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-full);
+  padding: 10px 18px;
+  color: #fff;
+  font-size: 0.9rem;
+}
+
+.librarian-chat-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-glow);
+}
+
+.librarian-suggested-questions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.librarian-suggestion-btn {
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 8px 14px;
+  font-size: 0.8rem;
+  text-align: left;
+  cursor: pointer;
+  color: var(--text-secondary);
+  transition: all var(--transition-fast);
+  line-height: 1.3;
+}
+
+.librarian-suggestion-btn:hover {
+  background: var(--accent-glow);
+  border-color: var(--accent);
+  color: #fff;
+}
+
 
 
 

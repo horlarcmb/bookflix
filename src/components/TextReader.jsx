@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { FiChevronLeft, FiChevronRight, FiSettings, FiSun, FiMoon, FiVolume2, FiPlay, FiPause, FiSquare, FiX, FiActivity } from 'react-icons/fi';
+import { FiChevronLeft, FiChevronRight, FiSettings, FiSun, FiMoon, FiVolume2, FiPlay, FiPause, FiSquare, FiX, FiActivity, FiCpu } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
 import { useBook } from '../context/BookContext';
 import { sampleChapterContent } from '../data/books';
@@ -8,7 +8,7 @@ import { sampleChapterContent } from '../data/books';
 export default function TextReader({ book }) {
   const navigate = useNavigate();
   const location = useLocation();
-  const { updateBookProgress } = useAuth();
+  const { updateBookProgress, trackReadingTime } = useAuth();
   const { fetchBookContent } = useBook();
   
   // Parse initial chapter from query parameters (e.g. ?ch=3)
@@ -41,6 +41,69 @@ export default function TextReader({ book }) {
   const [voicePaused, setVoicePaused] = useState(false);
   const synthRef = useRef(typeof window !== 'undefined' ? window.speechSynthesis : null);
   const utteranceRef = useRef(null);
+
+  // AI Librarian Q&A Drawer States
+  const [librarianOpen, setLibrarianOpen] = useState(false);
+  const [chatQuery, setChatQuery] = useState("");
+  const [chatMessages, setChatMessages] = useState([
+    { 
+      sender: 'assistant', 
+      text: "Hello! I am your AI Librarian. Ask me anything about this chapter, key concepts, or characters!", 
+      suggestions: ["What is the main conflict?", "Who are the key characters?", "Summarize this chapter."] 
+    }
+  ]);
+  const [chatLoading, setChatLoading] = useState(false);
+  const messagesEndRef = useRef(null);
+
+  // Auto scroll to latest message
+  useEffect(() => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [chatMessages, librarianOpen]);
+
+  const handleSendMessage = async (textToSend) => {
+    const queryStr = textToSend || chatQuery;
+    if (!queryStr.trim()) return;
+
+    const userMsg = { sender: 'user', text: queryStr.trim() };
+    setChatMessages(prev => [...prev, userMsg]);
+    setChatQuery("");
+    setChatLoading(true);
+
+    try {
+      const res = await fetch('/api/nlp/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          book_title: book.title,
+          chapter_title: getChapterTitle(),
+          chapter_content: getChapterText(),
+          query: queryStr.trim(),
+          chat_history: chatMessages.map(m => ({ role: m.sender === 'user' ? 'user' : 'assistant', content: m.text }))
+        })
+      });
+
+      if (!res.ok) throw new Error('Failed to get response');
+      const data = await res.json();
+      
+      const assistantMsg = { 
+        sender: 'assistant', 
+        text: data.response, 
+        suggestions: data.suggested_questions || [] 
+      };
+      setChatMessages(prev => [...prev, assistantMsg]);
+    } catch (err) {
+      console.error(err);
+      setChatMessages(prev => [...prev, { 
+        sender: 'assistant', 
+        text: "I'm sorry, I was unable to connect to the library archives. Please try again.", 
+        suggestions: ["Try asking again", "What is the main conflict?"] 
+      }]);
+    } finally {
+      setChatLoading(false);
+    }
+  };
 
   // Clear speech when switching chapters or unmounting
   useEffect(() => {
@@ -184,6 +247,27 @@ export default function TextReader({ book }) {
     if (loading) return;
     updateBookProgress(book.id, currentChapter, Math.round(progress));
   }, [progress, currentChapter, loading]);
+
+  // Track actual active reading duration in seconds
+  useEffect(() => {
+    let accumulatedSeconds = 0;
+    const interval = setInterval(() => {
+      if (!document.hidden) {
+        accumulatedSeconds += 10;
+        if (accumulatedSeconds >= 10) {
+          trackReadingTime(book.id, accumulatedSeconds);
+          accumulatedSeconds = 0;
+        }
+      }
+    }, 10000);
+
+    return () => {
+      clearInterval(interval);
+      if (accumulatedSeconds > 0) {
+        trackReadingTime(book.id, accumulatedSeconds);
+      }
+    };
+  }, [book.id, trackReadingTime]);
 
   // Reset progress when chapter changes
   useEffect(() => {
@@ -330,6 +414,25 @@ export default function TextReader({ book }) {
               </>
             )}
           </button>
+
+          <button 
+            type="button" 
+            className="btn btn-secondary btn-sm"
+            onClick={() => setLibrarianOpen(true)}
+            style={{ 
+              display: 'inline-flex', 
+              alignItems: 'center', 
+              gap: '6px', 
+              padding: '8px 16px', 
+              fontSize: '0.8rem',
+              borderRadius: '20px',
+              fontWeight: 600,
+              cursor: 'pointer'
+            }}
+          >
+            <FiCpu />
+            <span>🎓 Ask AI Librarian</span>
+          </button>
         </div>
 
         {/* AI Summary Card */}
@@ -452,6 +555,75 @@ export default function TextReader({ book }) {
             disabled={currentChapter === book.chapters}
           >
             Next Chapter <FiChevronRight />
+          </button>
+        </div>
+      </div>
+
+      {/* AI Librarian sliding drawer */}
+      <div className={`librarian-drawer ${librarianOpen ? 'open' : ''}`}>
+        <div className="librarian-header">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 700 }}>
+            <FiCpu style={{ color: 'var(--accent)' }} />
+            <span>AI Librarian</span>
+          </div>
+          <button 
+            type="button"
+            className="btn btn-ghost btn-sm" 
+            onClick={() => setLibrarianOpen(false)}
+            style={{ padding: '4px', minWidth: 'auto' }}
+          >
+            <FiX />
+          </button>
+        </div>
+
+        <div className="librarian-chat-messages">
+          {chatMessages.map((msg, idx) => (
+            <div key={idx} className={`librarian-message ${msg.sender}`}>
+              <div style={{ whiteSpace: 'pre-wrap' }}>{msg.text}</div>
+              {msg.sender === 'assistant' && msg.suggestions && msg.suggestions.length > 0 && (
+                <div className="librarian-suggested-questions">
+                  {msg.suggestions.map((sugg, sIdx) => (
+                    <button
+                      key={sIdx}
+                      className="librarian-suggestion-btn"
+                      onClick={() => handleSendMessage(sugg)}
+                    >
+                      {sugg}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+          {chatLoading && (
+            <div className="librarian-message assistant" style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+              <FiActivity style={{ animation: 'spin 1s linear infinite' }} />
+              Consulting archives...
+            </div>
+          )}
+          <div ref={messagesEndRef} />
+        </div>
+
+        <div className="librarian-chat-input-container">
+          <input
+            type="text"
+            className="librarian-chat-input"
+            placeholder="Ask about this chapter..."
+            value={chatQuery}
+            onChange={e => setChatQuery(e.target.value)}
+            onKeyDown={e => {
+              if (e.key === 'Enter') {
+                handleSendMessage();
+              }
+            }}
+          />
+          <button
+            className="btn btn-primary btn-sm"
+            onClick={() => handleSendMessage()}
+            style={{ borderRadius: '20px', padding: '10px 16px' }}
+            disabled={chatLoading}
+          >
+            Ask
           </button>
         </div>
       </div>

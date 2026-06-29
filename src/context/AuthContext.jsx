@@ -185,6 +185,24 @@ export function AuthProvider({ children }) {
     }
   };
 
+  const trackReadingTime = async (bookId, duration) => {
+    try {
+      const res = await fetch('/api/auth/track-time', {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({ bookId, duration })
+      });
+      
+      const data = await res.json();
+      if (res.ok) {
+        localStorage.setItem('bookflix_currentUser', JSON.stringify(data));
+        setUser(data);
+      }
+    } catch (err) {
+      console.error('Failed to sync reading time to backend:', err);
+    }
+  };
+
   const setBookRating = async (bookId, rating) => {
     const res = await fetch('/api/auth/rate', {
       method: 'POST',
@@ -235,6 +253,7 @@ export function AuthProvider({ children }) {
     updateProfile,
     toggleSaveBook,
     updateBookProgress,
+    trackReadingTime,
     setBookRating,
     getAllUsers,
     toggleUserAdminStatus
