@@ -3070,18 +3070,78 @@ app.post('/api/admin/parse-epub', authenticateToken, requireAdmin, async (req, r
 });
 
 // --- NLP SUMMARIZATION ENDPOINT ---
+const runSummarizerAgent = (payload) => {
+  return new Promise((resolve, reject) => {
+    const pythonProcess = spawn('python', [path.join(__dirname, 'ai-system', 'agents', 'summarizer_agent.py')]);
+    let dataStr = '';
+    let errorStr = '';
+
+    pythonProcess.stdout.on('data', (data) => {
+      dataStr += data.toString();
+    });
+
+    pythonProcess.stderr.on('data', (data) => {
+      errorStr += data.toString();
+    });
+
+    pythonProcess.on('close', (code) => {
+      if (code !== 0) {
+        return reject(new Error(`Summarizer Agent exited with code ${code}. Error: ${errorStr}`));
+      }
+      try {
+        resolve(JSON.parse(dataStr));
+      } catch (e) {
+        reject(new Error(`Failed to parse Summarizer Agent output: ${e.message}. Raw output: ${dataStr}`));
+      }
+    });
+
+    pythonProcess.stdin.write(JSON.stringify(payload));
+    pythonProcess.stdin.end();
+  });
+};
+
 app.post('/api/nlp/summarize', async (req, res) => {
-  const { text } = req.body;
+  const { text, mode, book_id, chapter } = req.body;
   if (!text) {
     return res.status(400).json({ message: 'Text body required for summarization' });
   }
 
+  // Try to decode user if auth header exists (non-blocking)
+  let userId = null;
+  let userEmail = null;
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+  if (token) {
+    try {
+      const decoded = jwt.verify(token, JWT_SECRET);
+      userId = decoded.id;
+      userEmail = decoded.email;
+    } catch (e) {
+      // Ignore token decode errors
+    }
+  }
+
   try {
-    const summaryData = summarizeTextNLP(text);
+    // Log summary usage telemetry
+    await db.logTelemetry({
+      userId,
+      userEmail,
+      eventType: 'ai_summary_usage',
+      metadata: { 
+        bookId: book_id || "Unknown", 
+        chapter: chapter || 1, 
+        textLength: text.length, 
+        mode: mode || 'short',
+        isSelection: !book_id
+      },
+      timestamp: new Date()
+    });
+
+    const summaryData = await runSummarizerAgent({ text, mode: mode || 'short' });
     res.json(summaryData);
   } catch (err) {
     console.error('Error in NLP summary:', err);
-    res.status(500).json({ message: 'Failed to generate NLP summary' });
+    res.status(500).json({ message: 'Failed to generate NLP summary: ' + err.message });
   }
 });
 
@@ -3124,7 +3184,35 @@ app.post('/api/nlp/chat', async (req, res) => {
     return res.status(400).json({ message: 'Query is required' });
   }
 
+  // Try to decode user if auth header exists (non-blocking)
+  let userId = null;
+  let userEmail = null;
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
+  if (token) {
+    try {
+      const decoded = jwt.verify(token, JWT_SECRET);
+      userId = decoded.id;
+      userEmail = decoded.email;
+    } catch (e) {
+      // Ignore token decode errors
+    }
+  }
+
   try {
+    // Log AI Librarian usage telemetry
+    await db.logTelemetry({
+      userId,
+      userEmail,
+      eventType: 'ai_librarian_usage',
+      metadata: { 
+        bookTitle: book_title || "Unknown Book", 
+        chapterTitle: chapter_title || "Unknown Chapter", 
+        queryLength: query.length 
+      },
+      timestamp: new Date()
+    });
+
     const payload = {
       book_title: book_title || "Unknown Book",
       chapter_title: chapter_title || "Unknown Chapter",

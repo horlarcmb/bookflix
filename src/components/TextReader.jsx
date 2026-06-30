@@ -42,6 +42,22 @@ export default function TextReader({ book }) {
   const synthRef = useRef(typeof window !== 'undefined' ? window.speechSynthesis : null);
   const utteranceRef = useRef(null);
 
+  const [summaryMode, setSummaryMode] = useState('short');
+  const [selectedText, setSelectedText] = useState('');
+
+  // Track text selection
+  useEffect(() => {
+    const handleSelectionChange = () => {
+      const selection = window.getSelection().toString().trim();
+      setSelectedText(selection);
+    };
+
+    document.addEventListener('selectionchange', handleSelectionChange);
+    return () => {
+      document.removeEventListener('selectionchange', handleSelectionChange);
+    };
+  }, []);
+
   // AI Librarian Q&A Drawer States
   const [librarianOpen, setLibrarianOpen] = useState(false);
   const [chatQuery, setChatQuery] = useState("");
@@ -118,9 +134,11 @@ export default function TextReader({ book }) {
     };
   }, [currentChapter]);
 
-  const handleSummarizeChapter = async () => {
-    if (aiSummary) {
-      // Toggle summary off
+  const handleSummarizeChapter = async (forceText = null) => {
+    const textToSummarize = forceText || selectedText || getChapterText();
+    const isSelection = !!(forceText || selectedText);
+
+    if (aiSummary && !isSelection) {
       setAiSummary(null);
       if (synthRef.current) {
         synthRef.current.cancel();
@@ -132,18 +150,28 @@ export default function TextReader({ book }) {
 
     setAiLoading(true);
     try {
-      const text = getChapterText();
+      const token = localStorage.getItem('bookflix_token');
       const res = await fetch('/api/nlp/summarize', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Authorization': token ? `Bearer ${token}` : ''
         },
-        body: JSON.stringify({ text })
+        body: JSON.stringify({
+          text: textToSummarize,
+          mode: summaryMode,
+          book_id: book.id,
+          chapter: currentChapter
+        })
       });
 
       if (!res.ok) throw new Error('Failed to generate summary');
       const data = await res.json();
-      setAiSummary(data);
+      setAiSummary({
+        ...data,
+        isSelection,
+        mode: summaryMode
+      });
     } catch (err) {
       console.error(err);
       alert('Failed to generate AI summary.');
@@ -383,11 +411,11 @@ export default function TextReader({ book }) {
         )}
 
         {/* AI smart tools panel trigger */}
-        <div style={{ display: 'flex', gap: '8px', marginBottom: 'var(--space-lg)' }} onClick={(e) => e.stopPropagation()}>
+        <div style={{ display: 'flex', gap: '8px', marginBottom: 'var(--space-lg)', flexWrap: 'wrap', alignItems: 'center' }} onClick={(e) => e.stopPropagation()}>
           <button 
             type="button" 
             className="btn btn-primary btn-sm"
-            onClick={handleSummarizeChapter}
+            onClick={() => handleSummarizeChapter()}
             style={{ 
               display: 'inline-flex', 
               alignItems: 'center', 
@@ -406,14 +434,34 @@ export default function TextReader({ book }) {
             {aiLoading ? (
               <>
                 <FiActivity style={{ animation: 'spin 1s linear infinite' }} />
-                Analyzing Chapter...
+                Generating...
               </>
             ) : (
               <>
-                <span>✨ AI Chapter Insights</span>
+                <span>⚡ Summarize Chapter</span>
               </>
             )}
           </button>
+
+          <select
+            value={summaryMode}
+            onChange={e => setSummaryMode(e.target.value)}
+            style={{
+              background: theme === 'dark' ? 'rgba(30, 30, 30, 0.85)' : '#fff',
+              border: '1px solid var(--border)',
+              borderRadius: '20px',
+              padding: '8px 16px',
+              fontSize: '0.8rem',
+              color: 'var(--text-primary)',
+              fontWeight: 600,
+              cursor: 'pointer',
+              outline: 'none'
+            }}
+          >
+            <option value="short">Short Summary</option>
+            <option value="detailed">Detailed Summary</option>
+            <option value="key_insights">Key Insights</option>
+          </select>
 
           <button 
             type="button" 
@@ -433,6 +481,30 @@ export default function TextReader({ book }) {
             <FiCpu />
             <span>🎓 Ask AI Librarian</span>
           </button>
+
+          {selectedText && (
+            <button 
+              type="button" 
+              className="btn btn-primary btn-sm"
+              onClick={() => handleSummarizeChapter(selectedText)}
+              style={{ 
+                display: 'inline-flex', 
+                alignItems: 'center', 
+                gap: '6px', 
+                padding: '8px 16px', 
+                fontSize: '0.8rem',
+                borderRadius: '20px',
+                fontWeight: 600,
+                background: 'linear-gradient(135deg, #00d2fe, #4facfe)',
+                border: 'none',
+                boxShadow: '0 4px 12px rgba(0, 210, 254, 0.2)',
+                cursor: 'pointer'
+              }}
+              disabled={aiLoading}
+            >
+              <span>⚡ Summarize Selection</span>
+            </button>
+          )}
         </div>
 
         {/* AI Summary Card */}
@@ -456,7 +528,7 @@ export default function TextReader({ book }) {
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: '8px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 700, color: 'var(--accent)', fontFamily: 'var(--font-display)' }}>
-                <span>✨ AI Chapter Insights</span>
+                <span>✨ {aiSummary.isSelection ? 'AI Selection Summary' : 'AI Chapter Insights'} ({aiSummary.mode ? aiSummary.mode.toUpperCase().replace('_', ' ') : 'SHORT'})</span>
               </div>
               <button 
                 type="button"

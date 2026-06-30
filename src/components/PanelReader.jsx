@@ -46,6 +46,8 @@ export default function PanelReader({ book }) {
   const synthRef = useRef(typeof window !== 'undefined' ? window.speechSynthesis : null);
   const utteranceRef = useRef(null);
 
+  const [summaryMode, setSummaryMode] = useState('short');
+
   // AI Librarian Q&A Drawer States
   const [librarianOpen, setLibrarianOpen] = useState(false);
   const [chatQuery, setChatQuery] = useState("");
@@ -145,7 +147,6 @@ export default function PanelReader({ book }) {
 
   const handleSummarizeChapter = async () => {
     if (aiSummary) {
-      // Toggle summary off
       setAiSummary(null);
       if (synthRef.current) {
         synthRef.current.cancel();
@@ -157,18 +158,27 @@ export default function PanelReader({ book }) {
 
     setAiLoading(true);
     try {
-      const text = getChapterText();
+      const token = localStorage.getItem('bookflix_token');
       const res = await fetch('/api/nlp/summarize', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Authorization': token ? `Bearer ${token}` : ''
         },
-        body: JSON.stringify({ text })
+        body: JSON.stringify({
+          text: getChapterText(),
+          mode: summaryMode,
+          book_id: book.id,
+          chapter: currentChapter
+        })
       });
 
       if (!res.ok) throw new Error('Failed to generate summary');
       const data = await res.json();
-      setAiSummary(data);
+      setAiSummary({
+        ...data,
+        mode: summaryMode
+      });
     } catch (err) {
       console.error(err);
       alert('Failed to generate AI summary.');
@@ -451,7 +461,7 @@ export default function PanelReader({ book }) {
           <div style={{ width: '100%', maxWidth: '600px', display: 'flex', flexDirection: 'column', gap: '12px', transform: `scale(${zoomLevel / 100})`, transformOrigin: 'top center' }}>
             
             {/* AI smart tools panel trigger */}
-            <div style={{ display: 'flex', gap: '8px', marginBottom: 'var(--space-sm)' }} onClick={(e) => e.stopPropagation()}>
+            <div style={{ display: 'flex', gap: '8px', marginBottom: 'var(--space-sm)', flexWrap: 'wrap', alignItems: 'center' }} onClick={(e) => e.stopPropagation()}>
               <button 
                 type="button" 
                 className="btn btn-primary btn-sm"
@@ -474,14 +484,34 @@ export default function PanelReader({ book }) {
                 {aiLoading ? (
                   <>
                     <FiActivity style={{ animation: 'spin 1s linear infinite' }} />
-                    Analyzing Chapter...
+                    Generating...
                   </>
                 ) : (
                   <>
-                    <span>✨ AI Chapter Insights</span>
+                    <span>⚡ Summarize Chapter</span>
                   </>
                 )}
               </button>
+
+              <select
+                value={summaryMode}
+                onChange={e => setSummaryMode(e.target.value)}
+                style={{
+                  background: 'rgba(30, 30, 30, 0.85)',
+                  border: '1px solid #333',
+                  borderRadius: '20px',
+                  padding: '8px 16px',
+                  fontSize: '0.8rem',
+                  color: '#fff',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  outline: 'none'
+                }}
+              >
+                <option value="short">Short Summary</option>
+                <option value="detailed">Detailed Summary</option>
+                <option value="key_insights">Key Insights</option>
+              </select>
 
               <button 
                 type="button" 
@@ -526,7 +556,7 @@ export default function PanelReader({ book }) {
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #222', paddingBottom: '8px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 700, color: 'var(--accent)', fontFamily: 'var(--font-display)' }}>
-                    <span>✨ AI Chapter Insights</span>
+                    <span>✨ AI Chapter Insights ({aiSummary.mode ? aiSummary.mode.toUpperCase().replace('_', ' ') : 'SHORT'})</span>
                   </div>
                   <button 
                     type="button"
@@ -687,7 +717,7 @@ export default function PanelReader({ book }) {
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '20px' }}>
             
             {/* AI smart tools panel trigger */}
-            <div style={{ display: 'flex', gap: '8px', marginBottom: 'var(--space-sm)' }} onClick={(e) => e.stopPropagation()}>
+            <div style={{ display: 'flex', gap: '8px', marginBottom: 'var(--space-sm)', flexWrap: 'wrap', alignItems: 'center' }} onClick={(e) => e.stopPropagation()}>
               <button 
                 type="button" 
                 className="btn btn-primary btn-sm"
@@ -710,14 +740,34 @@ export default function PanelReader({ book }) {
                 {aiLoading ? (
                   <>
                     <FiActivity style={{ animation: 'spin 1s linear infinite' }} />
-                    Analyzing Chapter...
+                    Generating...
                   </>
                 ) : (
                   <>
-                    <span>✨ AI Chapter Insights</span>
+                    <span>⚡ Summarize Chapter</span>
                   </>
                 )}
               </button>
+
+              <select
+                value={summaryMode}
+                onChange={e => setSummaryMode(e.target.value)}
+                style={{
+                  background: 'rgba(30, 30, 30, 0.85)',
+                  border: '1px solid #333',
+                  borderRadius: '20px',
+                  padding: '8px 16px',
+                  fontSize: '0.8rem',
+                  color: '#fff',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  outline: 'none'
+                }}
+              >
+                <option value="short">Short Summary</option>
+                <option value="detailed">Detailed Summary</option>
+                <option value="key_insights">Key Insights</option>
+              </select>
 
               <button 
                 type="button" 
@@ -763,7 +813,7 @@ export default function PanelReader({ book }) {
               >
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #222', paddingBottom: '8px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 700, color: 'var(--accent)', fontFamily: 'var(--font-display)' }}>
-                    <span>✨ AI Chapter Insights</span>
+                    <span>✨ AI Chapter Insights ({aiSummary.mode ? aiSummary.mode.toUpperCase().replace('_', ' ') : 'SHORT'})</span>
                   </div>
                   <button 
                     type="button"

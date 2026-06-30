@@ -21,7 +21,8 @@ export default function FeedbackButton() {
       'feature requests': 'Feature Requests',
       'UI issues': 'UI Issues',
       'performance issues': 'Performance Issues',
-      'positive feedback': 'Positive Feedback'
+      'positive feedback': 'Positive Feedback',
+      'complaints': 'Complaints'
     };
 
     try {
@@ -193,6 +194,7 @@ export default function FeedbackButton() {
                       <option value="UI issues">UI/UX Issue</option>
                       <option value="performance issues">Performance Issue</option>
                       <option value="positive feedback">Positive Feedback</option>
+                      <option value="complaints">Complaint / Critique</option>
                     </select>
                   </div>
 
