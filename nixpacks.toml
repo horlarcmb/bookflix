@@ -2,4 +2,4 @@
 providers = ["node", "python"]
 
 [phases.setup]
-nixPkgs = ["nodejs_22", "python3", "gcc"]
+nixPkgs = ["nodejs_22", "gcc"]
