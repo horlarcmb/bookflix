@@ -402,12 +402,12 @@ export default function AdminDashboard() {
     return acc;
   }, { short: 0, detailed: 0, key_insights: 0 });
 
-  const displayedLibrarianCount = Math.max(librarianUsageCount, 48);
-  const displayedSummaryCount = Math.max(summaryUsageCount, 92);
+  const displayedLibrarianCount = librarianUsageCount;
+  const displayedSummaryCount = summaryUsageCount;
   const displayedSummaryModes = {
-    short: Math.max(summaryModes.short, 42),
-    detailed: Math.max(summaryModes.detailed, 31),
-    key_insights: Math.max(summaryModes.key_insights, 19)
+    short: summaryModes.short,
+    detailed: summaryModes.detailed,
+    key_insights: summaryModes.key_insights
   };
 
   // Feedback Metrics calculations from feedbacksList
@@ -424,9 +424,9 @@ export default function AdminDashboard() {
     return acc;
   }, { Positive: 0, Neutral: 0, Negative: 0 });
 
-  const positivePct = totalFeedbackCount > 0 ? Math.round((sentimentStats.Positive / totalFeedbackCount) * 100) : 70;
-  const neutralPct = totalFeedbackCount > 0 ? Math.round((sentimentStats.Neutral / totalFeedbackCount) * 100) : 20;
-  const negativePct = totalFeedbackCount > 0 ? Math.round((sentimentStats.Negative / totalFeedbackCount) * 100) : 10;
+  const positivePct = totalFeedbackCount > 0 ? Math.round((sentimentStats.Positive / totalFeedbackCount) * 100) : 0;
+  const neutralPct = totalFeedbackCount > 0 ? Math.round((sentimentStats.Neutral / totalFeedbackCount) * 100) : 0;
+  const negativePct = totalFeedbackCount > 0 ? Math.round((sentimentStats.Negative / totalFeedbackCount) * 100) : 0;
 
   // User Behavior Metrics calculations
   const readBookCounts = telemetryLogs.reduce((acc, log) => {
@@ -451,21 +451,8 @@ export default function AdminDashboard() {
     .sort((a, b) => b[1] - a[1])
     .slice(0, 5);
 
-  const displayedTopBooks = topReadBooks.length > 0 ? topReadBooks : [
-    ["The Great Gatsby", 12],
-    ["Pride and Prejudice", 9],
-    ["Alice's Adventures in Wonderland", 7],
-    ["Frankenstein", 5],
-    ["Dracula", 3]
-  ];
-
-  const displayedTopSearches = topSearches.length > 0 ? topSearches : [
-    ["gutenberg novel", 25],
-    ["ai summary", 18],
-    ["sci-fi textbooks", 14],
-    ["classic manga", 11],
-    ["study guides", 8]
-  ];
+  const displayedTopBooks = topReadBooks;
+  const displayedTopSearches = topSearches;
 
   const sidebarItems = [
     { id: 'overview', icon: <FiBarChart2 />, label: 'Overview' },
@@ -1000,24 +987,32 @@ export default function AdminDashboard() {
                         <div>
                           <span style={{ fontSize: '0.85rem', fontWeight: 600, display: 'block', marginBottom: '6px' }}>Most Read Books (Active Session telemetry)</span>
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                            {displayedTopBooks.map(([title, reads], idx) => (
-                              <div key={idx} className="list-item-ranking">
-                                <span style={{ fontWeight: 500, color: '#fff' }}>{idx + 1}. {title}</span>
-                                <span style={{ color: 'var(--accent)', fontWeight: 600 }}>{reads} reads</span>
-                              </div>
-                            ))}
+                            {displayedTopBooks.length === 0 ? (
+                              <div style={{ fontSize: '0.8rem', color: 'var(--text-tertiary)', fontStyle: 'italic', padding: '4px 0' }}>No reading activity logged yet.</div>
+                            ) : (
+                              displayedTopBooks.map(([title, reads], idx) => (
+                                <div key={idx} className="list-item-ranking">
+                                  <span style={{ fontWeight: 500, color: '#fff' }}>{idx + 1}. {title}</span>
+                                  <span style={{ color: 'var(--accent)', fontWeight: 600 }}>{reads} reads</span>
+                                </div>
+                              ))
+                            )}
                           </div>
                         </div>
 
                         <div>
                           <span style={{ fontSize: '0.85rem', fontWeight: 600, display: 'block', marginBottom: '6px' }}>Most Searched Terms</span>
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                            {displayedTopSearches.map(([q, searches], idx) => (
-                              <div key={idx} className="list-item-ranking">
-                                <span style={{ fontWeight: 500, color: '#fff' }}>{idx + 1}. "{q}"</span>
-                                <span style={{ color: '#4facfe', fontWeight: 600 }}>{searches} queries</span>
-                              </div>
-                            ))}
+                            {displayedTopSearches.length === 0 ? (
+                              <div style={{ fontSize: '0.8rem', color: 'var(--text-tertiary)', fontStyle: 'italic', padding: '4px 0' }}>No search queries logged yet.</div>
+                            ) : (
+                              displayedTopSearches.map(([q, searches], idx) => (
+                                <div key={idx} className="list-item-ranking">
+                                  <span style={{ fontWeight: 500, color: '#fff' }}>{idx + 1}. "{q}"</span>
+                                  <span style={{ color: '#4facfe', fontWeight: 600 }}>{searches} queries</span>
+                                </div>
+                              ))
+                            )}
                           </div>
                         </div>
                       </div>

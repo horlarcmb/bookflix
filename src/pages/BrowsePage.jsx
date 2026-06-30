@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { FiGrid, FiList } from 'react-icons/fi';
@@ -26,6 +26,26 @@ export default function BrowsePage() {
   const [sortBy, setSortBy] = useState(initialSort);
   const [query, setQuery] = useState(initialQuery);
   const [viewMode, setViewMode] = useState('grid');
+
+  // Debounced search telemetry logging
+  useEffect(() => {
+    if (!query || !query.trim()) return;
+    const delayDebounceFn = setTimeout(() => {
+      const token = localStorage.getItem('bookflix_token');
+      const headers = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+      fetch('/api/telemetry/event', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          eventType: 'search',
+          metadata: { query: query.trim() }
+        })
+      }).catch(err => console.error('Failed to log search telemetry:', err));
+    }, 1000);
+
+    return () => clearTimeout(delayDebounceFn);
+  }, [query]);
 
   // Track location.search in render to sync with URL query params when they change
   const [prevSearch, setPrevSearch] = useState(location.search);

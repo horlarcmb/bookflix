@@ -24,7 +24,20 @@ export default function Navbar({ onNotificationToggle, notificationCount }) {
   const handleSearch = (e) => {
     e.preventDefault();
     if (searchQuery.trim()) {
-      navigate(`/browse?q=${encodeURIComponent(searchQuery.trim())}`);
+      const q = searchQuery.trim();
+      const token = localStorage.getItem('bookflix_token');
+      const headers = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+      fetch('/api/telemetry/event', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          eventType: 'search',
+          metadata: { query: q }
+        })
+      }).catch(err => console.error('Failed to log search telemetry:', err));
+
+      navigate(`/browse?q=${encodeURIComponent(q)}`);
       setSearchOpen(false);
       setSearchQuery('');
     }
