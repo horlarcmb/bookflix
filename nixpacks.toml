@@ -1,0 +1,2 @@
+# nixpacks.toml for BookFlix deployment
+providers = ["node", "python"]

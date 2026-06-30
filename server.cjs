@@ -3076,6 +3076,10 @@ const runSummarizerAgent = (payload) => {
     let dataStr = '';
     let errorStr = '';
 
+    pythonProcess.on('error', (err) => {
+      reject(new Error(`Failed to start Summarizer Agent: ${err.message}`));
+    });
+
     pythonProcess.stdout.on('data', (data) => {
       dataStr += data.toString();
     });
@@ -3153,6 +3157,10 @@ const runLibrarianAgent = (payload) => {
     const pythonProcess = spawn('python', [path.join(__dirname, 'ai-system', 'agents', 'librarian_agent.py')]);
     let dataStr = '';
     let errorStr = '';
+
+    pythonProcess.on('error', (err) => {
+      reject(new Error(`Failed to start Librarian Agent: ${err.message}`));
+    });
 
     pythonProcess.stdout.on('data', (data) => {
       dataStr += data.toString();
