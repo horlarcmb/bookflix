@@ -1,2 +1,5 @@
 # nixpacks.toml for BookFlix deployment
 providers = ["node", "python"]
+
+[phases.setup]
+nixPkgs = ["nodejs_22", "python3", "gcc"]
